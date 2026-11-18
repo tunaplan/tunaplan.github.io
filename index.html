@@ -12,44 +12,35 @@
 <style>
   :root{ --paper:#f2f3f1; --ink:#44474c; --faint:#a2a7ac; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-  html,body{height:100%;overflow:hidden;background:#e5e7e7;
+  html,body{height:100%;overflow:hidden;background:var(--paper);
     font-family:"Noto Serif KR",serif;font-weight:200;color:var(--ink)}
 
-  /* 앱 (종이 뒤) */
+  /* 안쪽 (종이 너머) */
   #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper)}
-  #app h1{font-weight:200;font-size:24px;letter-spacing:.35em;opacity:0;transition:opacity 1.4s ease .9s}
+  #app h1{font-weight:200;font-size:22px;letter-spacing:.35em;opacity:0;transition:opacity 1.6s ease 1.2s}
   body.opened #app h1{opacity:1}
 
-  /* 잠금: 얇은 천 같은 종이 한 장 */
-  #lock{position:fixed;inset:0;background:var(--paper);transform-origin:50% 0%;
-    transition:transform 1.8s cubic-bezier(.5,0,.2,1), opacity 1.6s ease .2s, filter 1.6s ease;
-    will-change:transform}
-  #lock::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
-    background-image:
-      repeating-linear-gradient(0deg, rgba(100,110,122,.03) 0 1px, transparent 1px 3px),
-      repeating-linear-gradient(90deg, rgba(100,110,122,.025) 0 1px, transparent 1px 3px);}
-  body.opened #lock{transform:perspective(900px) rotateX(-58deg) translateY(-30%);opacity:0;filter:blur(1px);pointer-events:none}
+  /* 잠금: 얇은 종이 한 장 */
+  #lock{position:fixed;inset:0;background:var(--paper);
+    transition:opacity 2.2s cubic-bezier(.4,0,.2,1) .3s, transform 2.6s cubic-bezier(.3,0,.2,1) .3s, filter 2.2s ease .3s}
+  /* 종이 결: 고운 입자 + 가장자리가 아주 살짝 어두운 빛 */
+  #lock::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .44  0 0 0 0 .47  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+  #lock::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 45%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 70%, rgba(90,96,104,.05) 100%);}
+  /* 열릴 때: 얇은 천이 비치며 걷힌다 */
+  body.opened #lock{opacity:0;transform:translateY(-3%) scale(1.03);filter:blur(3px);pointer-events:none}
 
-  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:2}
 
-  .hint{position:absolute;left:0;right:0;text-align:center;pointer-events:none;
-    font-family:"Nanum Pen Script",cursive;font-size:22px;color:#8c9196;opacity:.75;
-    transform:rotate(-3deg);transition:opacity .8s ease}
-  .hint.hide{opacity:0}
-  /* 구석의 유채 — 보일 듯 말 듯, 봄을 기다리는 마음 */
-  .spring{position:absolute;left:14px;bottom:6px;width:26px;pointer-events:none;opacity:.42}
-  .spring .st{fill:none;stroke:rgba(112,132,98,.85);stroke-width:1.2;stroke-linecap:round;stroke-dasharray:2.6 2}
-  @keyframes breeze{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.4deg)}}
-  body.opened .spring{opacity:0;transition:opacity .8s}
   /* 종이에 눌려 남은 글씨 자국 */
-  .trace{position:absolute;right:9vw;bottom:calc(env(safe-area-inset-bottom) + 33vh);pointer-events:none;
-    font-family:"Nanum Pen Script",cursive;font-size:17px;color:rgba(70,72,78,.045);
-    text-shadow:0 1px 0 rgba(255,255,255,.7);transform:rotate(-4deg);letter-spacing:.04em}
-  body.opened .trace{opacity:0;transition:opacity .8s}
-  .sig{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 9vh);
-    text-align:center;pointer-events:none;line-height:1}
-  .sig small{display:block;font-size:10px;letter-spacing:.45em;color:var(--faint);margin-bottom:12px;padding-left:.45em}
-  .sig b{font-weight:300;font-size:17px;letter-spacing:.22em;color:var(--ink)}
+  .trace{position:absolute;left:13vw;top:21vh;pointer-events:none;z-index:1;
+    font-family:"Nanum Pen Script",cursive;font-size:17px;letter-spacing:.03em;
+    color:rgba(58,62,70,.032);filter:blur(.3px);transform:rotate(-3deg)}
+
+  .sig{position:absolute;left:0;right:0;top:61vh;text-align:center;pointer-events:none;line-height:1;z-index:1}
+  .sig small{display:block;font-size:10px;letter-spacing:.42em;color:var(--faint);margin-bottom:12px;padding-left:.42em}
+  .sig b{font-weight:300;font-size:17px;letter-spacing:.2em;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -57,9 +48,9 @@
 <main id="app"><h1>tu.:na.</h1></main>
 
 <div id="lock">
-  <canvas id="pad"></canvas>
   <div class="trace">나의 오랜 친구에게</div>
   <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
+  <canvas id="pad"></canvas>
 </div>
 
 <script>
@@ -68,30 +59,11 @@
   const ctx = cvs.getContext('2d');
   const knotEl = document.getElementById('knot');
   const RED = [146,46,60];   // 겨울의 가라앉은 붉은 실
-  const rgba = a => `rgba(${RED[0]},${RED[1]},${RED[2]},${a})`;
+  const rgba = (a,c=RED) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
   let W=0,H=0,dpr=1, knot={x:0,y:0};
-  const hintEl = {style:{},classList:{add(){},remove(){}}};
-  let half=[], dot=[], tipPt={x:0,y:0}, heartBox={w:0}, cxH=0;
-  const T0=-0.3, T1=2.1;   // 미리 놓인 실이 지나는 구간 (물음표처럼 보이는 갈고리)
-  const hp=(t)=>({x:16*Math.sin(t)**3, y:-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))});
-  // 무심하게 놓인 물음표 같은 실 = 나의 마음 (사실은 하트의 일부)
-  function makeHalf(){
-    const sc=Math.min(W*0.72, 290)/32; cxH=W/2; const cy=H*0.42;
-    const rot=-0.07, c=Math.cos(rot), sn=Math.sin(rot);
-    const P=(t,j=0)=>{const p=hp(t); const x=p.x*sc, y=p.y*sc;
-      return {x:cxH+x*c-y*sn+j, y:cy+x*sn+y*c+j*.6};};
-    half=[];
-    for(let i=0;i<=56;i++){
-      const wob=Math.sin(i*0.9)*0.5+Math.sin(i*0.37)*0.9;   // 손으로 놓은 듯한 흔들림
-      half.push(P(T0+(T1-T0)*i/56, wob));
-    }
-    const d=P(Math.PI); dot=[{x:d.x-2,y:d.y-3},{x:d.x+1,y:d.y+3}];   // 점 하나 = 하트의 아래 끝
-    tipPt=half[half.length-1]; heartBox={w:sc*32};
-    hintEl.style.top=(d.y+46)+'px';
-  }
   let strokes=[], cur=null, timer=null, state='idle'; // idle | drawing | fail | open
-  let failT=0, openT=0, retract=1;
+  let failT=0, openT=0, grow=1, tug=0;
 
   function resize(){
     dpr = Math.min(window.devicePixelRatio||1, 3);
@@ -99,8 +71,7 @@
     cvs.width = W*dpr; cvs.height = H*dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const r = knotEl.getBoundingClientRect();
-    knot = {x:r.left + r.width*0.55, y:r.bottom - 3};
-    makeHalf();
+    knot = {x:r.left + r.width*0.5, y:r.bottom - r.height*0.22};
   }
   addEventListener('resize', resize);
   document.fonts && document.fonts.ready.then(resize);
@@ -110,8 +81,10 @@
     if(state==='fail'||state==='open') return;
     clearTimeout(timer);
     cvs.setPointerCapture(e.pointerId);
-    cur=[{x:e.clientX,y:e.clientY}]; strokes.push(cur); state='drawing'; hintEl.classList.add('hide');
+    cur=[{x:e.clientX,y:e.clientY}]; strokes.push(cur); state='drawing';
+    navigator.vibrate && navigator.vibrate(4);
   });
+  let lastBuzz=0;
   cvs.addEventListener('pointermove', e=>{
     if(!cur) return;
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -125,9 +98,8 @@
   cvs.addEventListener('pointercancel', end);
 
   /* ---------- 그리기 ---------- */
-  // 경로를 일정 간격으로 나눔
   function spaced(pts, gap){
-    const out=[pts[0]]; let acc=0;
+    const out=[pts[0]];
     for(let i=1;i<pts.length;i++){
       let a=out[out.length-1], b=pts[i], d=Math.hypot(b.x-a.x,b.y-a.y);
       while(d>=gap){ const k=gap/d; a={x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k}; out.push(a); d=Math.hypot(b.x-a.x,b.y-a.y); }
@@ -135,46 +107,78 @@
     return out;
   }
 
-  function threadLine(x1,y1,cx,cy,x2,y2,a,w){
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo(cx,cy,x2,y2);
-    ctx.strokeStyle=rgba(a); ctx.lineWidth=w; ctx.stroke();
+  // 꼬임이 보이는 실 한 가닥 (경로 = 점 배열)
+  function thread(pts, alpha=1, w=1.25){
+    if(pts.length<2) return;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    const path=()=>{ ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); };
+    // 종이에 드리운 아주 옅은 그림자
+    ctx.save(); ctx.translate(.7,1.1); path(); ctx.strokeStyle=`rgba(40,44,52,${.07*alpha})`; ctx.lineWidth=w+.8; ctx.stroke(); ctx.restore();
+    // 몸통
+    path(); ctx.strokeStyle=rgba(.88*alpha); ctx.lineWidth=w; ctx.stroke();
+    // 꼬임: 짧게 끊긴 밝은 결과 어두운 결
+    ctx.setLineDash([1.2,2.3]);
+    path(); ctx.strokeStyle=`rgba(255,235,235,${.22*alpha})`; ctx.lineWidth=w*.45; ctx.stroke();
+    ctx.lineDashOffset=1.7;
+    path(); ctx.strokeStyle=`rgba(70,10,20,${.25*alpha})`; ctx.lineWidth=w*.4; ctx.stroke();
+    ctx.setLineDash([]); ctx.lineDashOffset=0;
   }
 
-  function needle(x,y,ang,alpha){
-    ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.globalAlpha=alpha;
-    ctx.strokeStyle='rgba(120,118,115,.9)'; ctx.lineWidth=1.1; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(-3,0); ctx.lineTo(24,0); ctx.stroke();      // 몸통
-    ctx.beginPath(); ctx.ellipse(-0.5,0,2.4,1.1,0,0,Math.PI*2); ctx.lineWidth=.8; ctx.stroke(); // 바늘귀
+  function quad(x1,y1,cx,cy,x2,y2,n=40){
+    const out=[]; for(let i=0;i<=n;i++){const t=i/n,u=1-t;
+      out.push({x:u*u*x1+2*u*t*cx+t*t*x2, y:u*u*y1+2*u*t*cy+t*t*y2});}
+    return out;
+  }
+
+  // 바늘: 귀 쪽은 둥글고 끝은 뾰족, 은빛, 귀에 구멍 (eye=바늘귀 위치, ang=끝이 향하는 방향)
+  function needle(ex,ey,ang,alpha=1){
+    const L=30, Wd=1.7;
+    ctx.save(); ctx.translate(ex,ey); ctx.rotate(ang); ctx.globalAlpha=alpha;
+    // 그림자
+    ctx.save(); ctx.translate(.8,1.4); ctx.beginPath();
+    ctx.moveTo(-3,-Wd/2); ctx.lineTo(L,0); ctx.lineTo(-3,Wd/2); ctx.arc(-3,0,Wd/2,Math.PI/2,-Math.PI/2);
+    ctx.fillStyle='rgba(40,44,52,.12)'; ctx.fill(); ctx.restore();
+    // 몸통
+    const g=ctx.createLinearGradient(0,-Wd/2,0,Wd/2);
+    g.addColorStop(0,'#c9ced3'); g.addColorStop(.45,'#f4f6f7'); g.addColorStop(1,'#7f868d');
+    ctx.beginPath(); ctx.moveTo(-3,-Wd/2); ctx.quadraticCurveTo(L*.6,-Wd*.45,L,0); ctx.quadraticCurveTo(L*.6,Wd*.45,-3,Wd/2);
+    ctx.arc(-3,0,Wd/2,Math.PI/2,-Math.PI/2); ctx.closePath();
+    ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle='rgba(90,96,104,.55)'; ctx.lineWidth=.35; ctx.stroke();
+    // 바늘귀
+    ctx.beginPath(); ctx.ellipse(0,0,2.2,.42,0,0,Math.PI*2); ctx.fillStyle='#e9ebea'; ctx.fill();
     ctx.restore();
+  }
+
+  // 바늘귀를 지나 반대편으로 살짝 나온 실 꼬리 (끝이 풀림)
+  function tail(ex,ey,ang,alpha=1){
+    const bx=Math.cos(ang+Math.PI), by=Math.sin(ang+Math.PI);
+    const px=-by, py=bx;
+    const a={x:ex,y:ey}, m={x:ex+bx*7+px*1.5,y:ey+by*7+py*1.5}, e={x:ex+bx*12+px*3.5,y:ey+by*12+py*3.5};
+    thread([a,m,e],alpha*.9,1.1);
+    ctx.lineWidth=.5; ctx.strokeStyle=rgba(.45*alpha);
+    ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+bx*3+px*1.8,e.y+by*3+py*1.8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+bx*3.4-px*.6,e.y+by*3.4-py*.6); ctx.stroke();
   }
 
   // 홈질 바늘땀
   function stitches(pts, opts={}){
     const {fall=0, taut=0} = opts;
-    const s = spaced(pts, 5);
-    ctx.lineCap='round';
-    if(taut>0){ // 하나로 이어진 실
-      ctx.beginPath(); s.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-      ctx.strokeStyle=rgba(.9*taut); ctx.lineWidth=1.8; ctx.stroke();
-    }
+    const s = spaced(pts, 5.5);
+    if(taut>0) thread(s, taut, 1.4);
     for(let i=0;i+1<s.length;i+=2){
       const a=s[i], b=s[i+1];
       const seed=Math.sin(i*12.9898)*43758.5453, r=seed-Math.floor(seed);
       const dy = fall*fall*(60+r*140), dx = fall*(r-.5)*40, rot=fall*(r-.5)*2;
-      const alpha = (1-fall)*(1-taut*0.6);
+      const alpha = (1-fall)*(1-taut);
       if(alpha<=0.01) continue;
       const mx=(a.x+b.x)/2+dx, my=(a.y+b.y)/2+dy, hx=(b.x-a.x)/2, hy=(b.y-a.y)/2;
-      const c=Math.cos(rot), sn=Math.sin(rot);
-      const ex=hx*c-hy*sn, ey=hx*sn+hy*c;
-      // 그림자 (천에 살짝 뜬 실)
-      ctx.beginPath(); ctx.moveTo(mx-ex+.6,my-ey+.9); ctx.lineTo(mx+ex+.6,my+ey+.9);
-      ctx.strokeStyle=`rgba(50,55,65,${.12*alpha})`; ctx.lineWidth=2.2; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(mx-ex,my-ey); ctx.lineTo(mx+ex,my+ey);
-      ctx.strokeStyle=rgba(.92*alpha); ctx.lineWidth=2; ctx.stroke();
-      // 바늘 구멍
-      if(fall<.05){
-        ctx.fillStyle=`rgba(80,70,65,${.18*alpha})`;
-        ctx.beginPath(); ctx.arc(a.x,a.y,.7,0,7); ctx.fill();
+      const c=Math.cos(rot), sn=Math.sin(rot), ex=hx*c-hy*sn, ey=hx*sn+hy*c;
+      thread([{x:mx-ex,y:my-ey},{x:mx+ex,y:my+ey}], alpha, 1.9);
+      if(fall<.05){ // 바늘 구멍
+        ctx.fillStyle=`rgba(60,64,72,${.22*alpha})`;
+        ctx.beginPath(); ctx.arc(a.x-hx*.15,a.y-hy*.15,.65,0,7); ctx.fill();
+        ctx.beginPath(); ctx.arc(b.x+hx*.15,b.y+hy*.15,.65,0,7); ctx.fill();
       }
     }
   }
@@ -183,42 +187,46 @@
     ctx.clearRect(0,0,W,H);
     const tt=t/1000;
 
-    // 미리 놓인 반쪽
-
-    // 그린 바늘땀
     if(state==='fail'){
       failT=Math.min(1,failT+0.022);
       strokes.forEach(s=>s.length>1&&stitches(s,{fall:failT}));
-      if(failT>=1){ strokes=[]; state='idle'; retract=0; hintEl.classList.remove('hide'); }
+      if(failT>=1){ strokes=[]; state='idle'; grow=0; }
     } else if(state==='open'){
-      openT=Math.min(1,openT+0.03);
+      openT=Math.min(1,openT+0.025);
       strokes.forEach(s=>s.length>1&&stitches(s,{taut:openT}));
     } else {
       strokes.forEach(s=>s.length>1&&stitches(s));
     }
 
-    // 서명 끝에서 나온 실
     const last = strokes.length ? strokes[strokes.length-1] : null;
     const tip = last ? last[last.length-1] : null;
-    if((state==='drawing') && tip){
-      const first = strokes[0][0];
+    if(state==='drawing' && tip){
       // 서명에서 첫 바늘땀까지 느슨한 실
+      const first = strokes[0][0];
       const d = Math.hypot(first.x-knot.x, first.y-knot.y);
-      if(d>6){ const sag=Math.max(30,d*0.25);
-        threadLine(knot.x,knot.y,(knot.x+first.x)/2,Math.max(knot.y,first.y)+sag,first.x,first.y,.55,1.1); }
+      if(d>6){ const sag=Math.max(30,d*0.22);
+        thread(quad(knot.x,knot.y,(knot.x+first.x)/2,Math.max(knot.y,first.y)+sag,first.x,first.y), .8, 1.15); }
       // 바늘은 손끝에
       const prev = last[Math.max(0,last.length-6)];
-      needle(tip.x,tip.y,Math.atan2(tip.y-prev.y,tip.x-prev.x),1);
+      const ang = Math.atan2(tip.y-prev.y,tip.x-prev.x);
+      needle(tip.x-Math.cos(ang)*26, tip.y-Math.sin(ang)*26, ang, 1);
     } else if(state==='idle'){
-      // 반쪽 끝에 매달린 실 + 바늘
-      retract=Math.min(1,retract+0.02);
-      const e=1-(1-retract)**3;
-      const sway=Math.sin(tt*0.9)*20 + Math.sin(tt*2.1+1)*5;   // 바람에 스스로 흔들리는 실
-      const len=110*e*(1+0.03*Math.sin(tt*0.6));
-      const ex=knot.x+28*e+sway, ey=knot.y-len+Math.abs(sway)*.15;
-      const cx=knot.x+34*e+sway*.45, cy=knot.y-len*.45;
-      threadLine(knot.x,knot.y,cx,cy,ex,ey,.75,1.1);
-      if(e>.3) needle(ex,ey,Math.atan2(ey-cy,ex-cx)+Math.PI,(e-.3)/.7);
+      // 서명 끝에서 바람에 흔들리는 실
+      grow=Math.min(1,grow+0.018);
+      const e=1-(1-grow)**3;
+      // 느긋한 흔들림 + 가끔 한 번씩 이는 바람
+      const gust = Math.max(0, Math.sin(tt*0.9 - 1.2)) ** 6 * Math.sin(tt*5.2) * 7;
+      const sway=Math.sin(tt*0.9)*20 + Math.sin(tt*2.1+1)*5 + gust;
+      const len=150*e*(1+0.03*Math.sin(tt*0.6));
+      const ex=knot.x+30*e+sway, ey=knot.y-len+Math.abs(sway)*.15;
+      const cx=knot.x+38*e+sway*.45, cy=knot.y-len*.45;
+      thread(quad(knot.x,knot.y,cx,cy,ex,ey), 1, 1.25);
+      if(e>.3){
+        const ang=Math.atan2(ey-cy,ex-cx);           // 실이 나아가는 방향
+        const a=(e-.3)/.7;
+        tail(ex,ey,ang,a);
+        needle(ex,ey,ang+Math.PI*0.5*0+Math.sin(tt*1.3)*.05, a);
+      }
     }
     requestAnimationFrame(frame);
   }
@@ -284,39 +292,15 @@
   window.__isHeart = isHeart;
 
 
-  // 남은 부분 모양과 대강 같은지
-  const tmpl=(t0,t1)=>normalize(Array.from({length:60},(_,i)=>hp(t0+(t1-t0)*i/59)));
-  const REST=[tmpl(T1,2*Math.PI+T0), tmpl(Math.PI,2*Math.PI), tmpl(T1,2*Math.PI)];
-  function matches(st,T){
-    let pts=[]; for(const s of st){ if(s.length>1) pts.push(...resample(s, Math.max(8,s.length))); }
-    if(pts.length<8) return false;
-    pts=normalize(resample(pts,96));
-    const a=pts.map(p=>nearest(p,T)).sort((x,y)=>x-y);
-    const b=T.map(p=>nearest(p,pts)).sort((x,y)=>x-y);
-    const mean=(a.reduce((s,v)=>s+v,0)/a.length+b.reduce((s,v)=>s+v,0)/b.length)/2;
-    return mean<0.11 && b[Math.floor(b.length*.95)]<0.18 && a[Math.floor(a.length*.85)]<0.2;
-  }
-
-  // 나의 마음 + 이어 그린 마음 = 사랑
-  function isLove(){
-    const pts=strokes.flat(); if(pts.length<8) return false;
-    const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
-    const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
-    const meanX=xs.reduce((a,b)=>a+b,0)/xs.length;
-    return isHeart(strokes);   // 하트 하나를 통째로 그려도 열림
-  }
-
-  window.__love=st=>{strokes=st;const r=isLove();strokes=[];return r;};
-
   function check(){
     if(!strokes.length) return;
-    if(isLove()){
+    if(isHeart(strokes)){
       state='open'; openT=0;
       navigator.vibrate && navigator.vibrate(18);
       setTimeout(()=>{
         document.body.classList.add('opened');
         try{ sessionStorage.setItem('tuna-open','1'); }catch(e){}
-      }, 700);
+      }, 900);
     } else {
       state='fail'; failT=0;
       navigator.vibrate && navigator.vibrate([25,40,25]);
