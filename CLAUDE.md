@@ -2,7 +2,7 @@
 
 ## 프로젝트
 - 앱 이름/서명: **tu.:na.** — 화면에는 `plan by tu.:na.` 로 표기
-- 저장소: github.com/myrainy97-ship-it/tuna (GitHub Pages: myrainy97-ship-it.github.io/tuna)
+- 저장소: github.com/tunaplan/tunaplan.github.io (주소: https://tunaplan.github.io) — 개인 계정이 드러나지 않도록 tunaplan 조직에 둔다.
 - 주소와 이름에 항상 `tuna`가 들어간다.
 - 주 사용 환경은 **휴대폰**. 모든 화면은 폰 세로 화면 기준으로 먼저 만든다.
 
