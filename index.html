@@ -53,6 +53,14 @@
   .spring .glint{stroke:rgba(255,255,255,.75);stroke-width:1.2;stroke-linecap:round}
   @keyframes breeze{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.4deg)}}
   body.opened .spring{opacity:0;transition:opacity .8s}
+  /* 무심하게: 화면 끝에 걸린 손가락 두 개 (반투명 천) */
+  .vee{position:absolute;right:2px;top:15vh;width:54px;pointer-events:none;opacity:.32;transform:rotate(-10deg)}
+  .vee path{fill:rgba(196,206,214,.35);stroke:rgba(120,132,145,.6);stroke-width:.7;stroke-dasharray:2.2 1.7}
+  /* 종이에 눌려 남은 글씨 자국 */
+  .trace{position:absolute;right:9vw;bottom:calc(env(safe-area-inset-bottom) + 21vh);pointer-events:none;
+    font-family:"Nanum Pen Script",cursive;font-size:17px;color:rgba(70,72,78,.045);
+    text-shadow:0 1px 0 rgba(255,255,255,.7);transform:rotate(-4deg);letter-spacing:.04em}
+  body.opened .vee, body.opened .trace{opacity:0;transition:opacity .8s}
   .sig{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 9vh);
     text-align:center;pointer-events:none;line-height:1}
   .sig small{display:block;font-size:10px;letter-spacing:.45em;color:var(--faint);margin-bottom:12px;padding-left:.45em}
@@ -108,6 +116,11 @@
     <path class="rim" d="M22 109 L78 109 L78 113 L22 113 Z"/>
     <path class="glint" d="M29 116 L32.5 143"/>
   </svg>
+  <svg class="vee" viewBox="0 0 120 170" aria-hidden="true">
+    <path d="M52 170 C47 128 35 66 27 28 Q29 13 39 17 C47 52 59 114 69 170 Z"/>
+    <path d="M71 170 C77 118 88 54 94 16 Q102 3 109 16 C105 54 97 118 89 170 Z"/>
+  </svg>
+  <div class="trace">나의 오랜 친구에게</div>
   <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
 </div>
 
