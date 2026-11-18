@@ -32,6 +32,7 @@
 
   canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 
+  #snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
   .hint{position:absolute;left:0;right:0;text-align:center;pointer-events:none;
     font-family:"Nanum Pen Script",cursive;font-size:22px;color:#8a847c;opacity:.75;
     transform:rotate(-3deg);transition:opacity .8s ease}
@@ -52,6 +53,37 @@
   <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
 </div>
 
+<canvas id="snow"></canvas>
+
+<script>
+/* 아련하게 내리는 눈 */
+(() => {
+  const c=document.getElementById('snow'), x=c.getContext('2d');
+  let W,H,flakes=[];
+  function size(){
+    const d=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight;
+    c.width=W*d; c.height=H*d; x.setTransform(d,0,0,d,0,0);
+    const n=Math.round(W*H/9000);
+    flakes=Array.from({length:n},()=>mk(Math.random()*H));
+  }
+  function mk(y){
+    const z=Math.random();                         // 멀고 가까움
+    return {x:Math.random()*W, y, z, r:.6+z*1.8, v:.15+z*.45, ph:Math.random()*6.3, a:.10+z*.22};
+  }
+  addEventListener('resize',size); size();
+  (function loop(t){
+    x.clearRect(0,0,W,H);
+    for(const f of flakes){
+      f.y+=f.v; f.x+=Math.sin(t/2600+f.ph)*.22*(.4+f.z);
+      if(f.y>H+6) Object.assign(f,mk(-6));
+      const g=x.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*2.2);
+      g.addColorStop(0,`rgba(150,160,172,${f.a})`); g.addColorStop(1,'rgba(150,160,172,0)');
+      x.fillStyle=g; x.beginPath(); x.arc(f.x,f.y,f.r*2.2,0,7); x.fill();
+    }
+    requestAnimationFrame(loop);
+  })(0);
+})();
+</script>
 <script>
 (() => {
   const cvs = document.getElementById('pad');
@@ -62,18 +94,23 @@
 
   let W=0,H=0,dpr=1, knot={x:0,y:0};
   const hintEl = document.getElementById('hint');
-  let half=[], tipPt={x:0,y:0}, heartBox={w:0};
-  // 반쪽 하트 = 나의 마음 (가운데 오목한 곳 → 왼쪽 봉우리 → 아래 끝)
+  let half=[], dot=[], tipPt={x:0,y:0}, heartBox={w:0}, cxH=0;
+  const T0=-0.3, T1=2.1;   // 미리 놓인 실이 지나는 구간 (물음표처럼 보이는 갈고리)
+  const hp=(t)=>({x:16*Math.sin(t)**3, y:-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))});
+  // 무심하게 놓인 물음표 같은 실 = 나의 마음 (사실은 하트의 일부)
   function makeHalf(){
-    const sc=Math.min(W*0.72, 290)/32, cx=W/2, cy=H*0.42;
+    const sc=Math.min(W*0.72, 290)/32; cxH=W/2; const cy=H*0.42;
+    const rot=-0.07, c=Math.cos(rot), sn=Math.sin(rot);
+    const P=(t,j=0)=>{const p=hp(t); const x=p.x*sc, y=p.y*sc;
+      return {x:cxH+x*c-y*sn+j, y:cy+x*sn+y*c+j*.6};};
     half=[];
-    for(let i=0;i<=60;i++){
-      const t=2*Math.PI - i/60*Math.PI;
-      const wob=Math.sin(i*0.9)*0.6+Math.sin(i*0.37)*0.9;   // 손으로 놓은 듯한 흔들림
-      half.push({x:cx+sc*16*Math.sin(t)**3+wob*.6, y:cy-sc*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))+wob*.4});
+    for(let i=0;i<=56;i++){
+      const wob=Math.sin(i*0.9)*0.5+Math.sin(i*0.37)*0.9;   // 손으로 놓은 듯한 흔들림
+      half.push(P(T0+(T1-T0)*i/56, wob));
     }
+    const d=P(Math.PI); dot=[{x:d.x-2,y:d.y-3},{x:d.x+1,y:d.y+3}];   // 점 하나 = 하트의 아래 끝
     tipPt=half[half.length-1]; heartBox={w:sc*32};
-    hintEl.style.top=(tipPt.y+108)+'px';
+    hintEl.style.top=(d.y+46)+'px';
   }
   let strokes=[], cur=null, timer=null, state='idle'; // idle | drawing | fail | open
   let failT=0, openT=0, retract=1;
@@ -170,6 +207,7 @@
 
     // 미리 놓인 반쪽
     stitches(half,{taut: state==='open'?openT:0});
+    stitches(dot,{taut: state==='open'?openT:0});
 
     // 그린 바늘땀
     if(state==='fail'){
@@ -270,28 +308,27 @@
   window.__isHeart = isHeart;
 
 
-  // 오른쪽 반쪽 모양인지 (대강)
-  const RIGHT = normalize(Array.from({length:60},(_,i)=>{const t=i/59*Math.PI;
-    return {x:16*Math.sin(t)**3, y:-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))};}));
-  function isRightHalf(st){
+  // 남은 부분 모양과 대강 같은지
+  const tmpl=(t0,t1)=>normalize(Array.from({length:60},(_,i)=>hp(t0+(t1-t0)*i/59)));
+  const REST=[tmpl(T1,2*Math.PI+T0), tmpl(Math.PI,2*Math.PI), tmpl(T1,2*Math.PI)];
+  function matches(st,T){
     let pts=[]; for(const s of st){ if(s.length>1) pts.push(...resample(s, Math.max(8,s.length))); }
     if(pts.length<8) return false;
     pts=normalize(resample(pts,96));
-    const a=pts.map(p=>nearest(p,RIGHT)).sort((x,y)=>x-y);
-    const b=RIGHT.map(p=>nearest(p,pts)).sort((x,y)=>x-y);
+    const a=pts.map(p=>nearest(p,T)).sort((x,y)=>x-y);
+    const b=T.map(p=>nearest(p,pts)).sort((x,y)=>x-y);
     const mean=(a.reduce((s,v)=>s+v,0)/a.length+b.reduce((s,v)=>s+v,0)/b.length)/2;
     return mean<0.11 && b[Math.floor(b.length*.95)]<0.18 && a[Math.floor(a.length*.85)]<0.2;
   }
 
-  // 나의 마음(반쪽) + 이어 그린 마음 = 사랑
+  // 나의 마음 + 이어 그린 마음 = 사랑
   function isLove(){
     const pts=strokes.flat(); if(pts.length<8) return false;
     const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
     const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
     const meanX=xs.reduce((a,b)=>a+b,0)/xs.length;
-    // 오른쪽에 반쪽만큼은 그렸을 때만 합쳐서 봄
-    if(meanX>W/2-heartBox.w*0.05 && w>heartBox.w*0.22 && h>heartBox.w*0.35 && isRightHalf(strokes)) return true;
-    return isHeart(strokes);   // 따로 하트 하나를 통째로 그려도 열림
+    if(meanX<cxH+heartBox.w*0.08 && w>heartBox.w*0.22 && h>heartBox.w*0.35 && REST.some(T=>matches(strokes,T))) return true;
+    return isHeart(strokes);   // 하트 하나를 통째로 그려도 열림
   }
 
   window.__love=st=>{strokes=st;const r=isLove();strokes=[];return r;};
