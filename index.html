@@ -38,11 +38,19 @@
     transform:rotate(-3deg);transition:opacity .8s ease}
   .hint.hide{opacity:0}
   /* 구석의 유채 — 보일 듯 말 듯, 봄을 기다리는 마음 */
-  .spring{position:absolute;left:10px;bottom:-4px;width:48px;pointer-events:none;opacity:.5;
-    transform-origin:50% 100%;animation:breeze 11s ease-in-out infinite}
+  .spring{position:absolute;left:6px;bottom:2px;width:78px;pointer-events:none;opacity:.55}
+  .spring .sway{transform-box:fill-box;transform-origin:50% 100%;animation:breeze 11s ease-in-out infinite}
   .spring .st{fill:none;stroke:rgba(112,132,98,.85);stroke-width:1.1;stroke-linecap:round;stroke-dasharray:3 2.2}
   .spring .pt{fill:rgba(222,196,96,.55);stroke:rgba(196,168,70,.6);stroke-width:.5}
   .spring .bd{fill:rgba(170,176,96,.6)}
+  .spring .dj{fill:rgba(226,138,104,.5);stroke:rgba(200,112,82,.55);stroke-width:.5}
+  .spring .db{fill:rgba(200,128,96,.5)}
+  .spring .pot{fill:rgba(205,215,222,.18);stroke:rgba(120,135,150,.55);stroke-width:.8;stroke-dasharray:2.4 1.8}
+  .spring .rim{fill:rgba(215,222,228,.25);stroke:rgba(120,135,150,.5);stroke-width:.7}
+  .spring .soil{fill:rgba(128,112,96,.22)}
+  .spring .root{fill:none;stroke:rgba(150,135,110,.5);stroke-width:.5;stroke-linecap:round}
+  .spring .seed{fill:rgba(100,80,60,.45)}
+  .spring .glint{stroke:rgba(255,255,255,.75);stroke-width:1.2;stroke-linecap:round}
   @keyframes breeze{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.4deg)}}
   body.opened .spring{opacity:0;transition:opacity .8s}
   .sig{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 9vh);
@@ -58,26 +66,47 @@
 <div id="lock">
   <canvas id="pad"></canvas>
   <div class="hint" id="hint">이어 그려보세요</div>
-  <svg class="spring" viewBox="0 0 60 124" aria-hidden="true">
-    <!-- 작은 새싹 -->
-    <path class="st" d="M14 124 C14 116 15 111 17 106"/>
-    <path class="st" d="M17 106 C12 104 9 100 8 97 C12 97 16 101 17 106"/>
-    <path class="st" d="M17 106 C21 102 25 101 27 101 C25 105 21 107 17 106"/>
-    <!-- 유채 한 줄기 -->
-    <path class="st" d="M34 124 C34 106 31 92 33 64"/>
-    <path class="st" d="M33 100 C25 97 19 90 17 83 C24 85 30 91 33 98"/>
-    <path class="st" d="M33 84 C38 80 43 79 46 80 C43 84 38 86 33 85"/>
-    <g transform="translate(33 61) rotate(12)">
-      <ellipse class="pt" cx="0" cy="-4" rx="2.2" ry="3.4"/>
-      <ellipse class="pt" cx="4" cy="0" rx="3.4" ry="2.2"/>
-      <ellipse class="pt" cx="0" cy="4" rx="2.2" ry="3.4"/>
-      <ellipse class="pt" cx="-4" cy="0" rx="3.4" ry="2.2"/>
-      <circle cx="0" cy="0" r="1" fill="rgba(170,140,60,.6)"/>
+  <svg class="spring" viewBox="0 0 100 150" aria-hidden="true">
+    <g class="sway">
+      <!-- 유채 -->
+      <path class="st" d="M42 122 C42 104 39 90 41 58"/>
+      <path class="st" d="M41 98 C33 95 27 88 25 81 C32 83 38 89 41 96"/>
+      <path class="st" d="M41 82 C46 78 51 77 54 78 C51 82 46 84 41 83"/>
+      <g transform="translate(41 55) rotate(12)">
+        <ellipse class="pt" cx="0" cy="-4" rx="2.2" ry="3.4"/><ellipse class="pt" cx="4" cy="0" rx="3.4" ry="2.2"/>
+        <ellipse class="pt" cx="0" cy="4" rx="2.2" ry="3.4"/><ellipse class="pt" cx="-4" cy="0" rx="3.4" ry="2.2"/>
+        <circle cx="0" cy="0" r="1" fill="rgba(170,140,60,.6)"/>
+      </g>
+      <ellipse class="bd" cx="38" cy="46" rx="1.6" ry="2.4" transform="rotate(-15 38 46)"/>
+      <ellipse class="bd" cx="44" cy="44" rx="1.5" ry="2.3" transform="rotate(14 44 44)"/>
+      <!-- 동자꽃 -->
+      <path class="st" d="M60 122 C60 110 62 98 60 74"/>
+      <path class="st" d="M61 106 C55 104 51 101 49 97 C54 98 58 101 61 105"/>
+      <path class="st" d="M61 106 C67 104 71 101 73 97 C68 98 64 101 61 105"/>
+      <path class="st" d="M60 90 C55 88 52 85 51 82 C55 83 58 86 60 89"/>
+      <path class="st" d="M60 90 C65 88 68 85 69 82 C65 83 62 86 60 89"/>
+      <g transform="translate(60 70) rotate(-8)">
+        <path class="dj" transform="rotate(0)" d="M0 0 C-2.4 -2 -3 -5 -2.2 -7.4 L0 -5.8 L2.2 -7.4 C3 -5 2.4 -2 0 0Z"/>
+        <path class="dj" transform="rotate(72)" d="M0 0 C-2.4 -2 -3 -5 -2.2 -7.4 L0 -5.8 L2.2 -7.4 C3 -5 2.4 -2 0 0Z"/>
+        <path class="dj" transform="rotate(144)" d="M0 0 C-2.4 -2 -3 -5 -2.2 -7.4 L0 -5.8 L2.2 -7.4 C3 -5 2.4 -2 0 0Z"/>
+        <path class="dj" transform="rotate(216)" d="M0 0 C-2.4 -2 -3 -5 -2.2 -7.4 L0 -5.8 L2.2 -7.4 C3 -5 2.4 -2 0 0Z"/>
+        <path class="dj" transform="rotate(288)" d="M0 0 C-2.4 -2 -3 -5 -2.2 -7.4 L0 -5.8 L2.2 -7.4 C3 -5 2.4 -2 0 0Z"/>
+        <circle cx="0" cy="0" r="1" fill="rgba(170,90,60,.6)"/>
+      </g>
+      <ellipse class="db" cx="66" cy="63" rx="1.5" ry="2.3" transform="rotate(25 66 63)"/>
+      <!-- 막 올라온 새싹 -->
+      <path class="st" d="M51 122 C51 119 51 117 52 115"/>
+      <path class="st" d="M52 115 C49 114 47 112 47 110 C49 111 51 113 52 115"/>
+      <path class="st" d="M52 115 C55 114 57 112 57 110 C55 111 53 113 52 115"/>
     </g>
-    <!-- 아직 피지 않은 꽃봉오리 -->
-    <ellipse class="bd" cx="30" cy="52" rx="1.6" ry="2.4" transform="rotate(-15 30 52)"/>
-    <ellipse class="bd" cx="36" cy="50" rx="1.5" ry="2.3" transform="rotate(14 36 50)"/>
-    <ellipse class="bd" cx="33" cy="46" rx="1.4" ry="2.1"/>
+    <!-- 투명한 작은 화분: 흙과 씨앗, 뿌리가 비친다 -->
+    <path class="soil" d="M27.5 121 L72.5 121 L69.6 146 L30.4 146 Z"/>
+    <path class="root" d="M42 122 C41 128 44 132 42 138 M42 128 C39 131 38 134 37 136 M60 122 C61 129 58 133 60 139 M60 129 C63 132 64 135 65 137 M52 122 C52 124 51 126 52 127"/>
+    <circle class="seed" cx="35" cy="140" r=".9"/><circle class="seed" cx="48" cy="143" r=".8"/>
+    <circle class="seed" cx="56" cy="136" r=".8"/><circle class="seed" cx="66" cy="142" r=".9"/>
+    <path class="pot" d="M24 112 L76 112 L70 147 Q50 149 30 147 Z"/>
+    <path class="rim" d="M22 109 L78 109 L78 113 L22 113 Z"/>
+    <path class="glint" d="M29 116 L32.5 143"/>
   </svg>
   <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
 </div>
