@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#f7f5f0">
+<meta name="theme-color" content="#f2f3f1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>tu.:na.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
 <style>
-  :root{ --paper:#f7f5f0; --ink:#4a4744; --faint:#aaa59c; }
+  :root{ --paper:#f2f3f1; --ink:#44474c; --faint:#a2a7ac; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-  html,body{height:100%;overflow:hidden;background:#ece9e2;
+  html,body{height:100%;overflow:hidden;background:#e5e7e7;
     font-family:"Noto Serif KR",serif;font-weight:200;color:var(--ink)}
 
   /* 앱 (종이 뒤) */
@@ -26,15 +26,15 @@
     will-change:transform}
   #lock::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
     background-image:
-      repeating-linear-gradient(0deg, rgba(110,100,90,.03) 0 1px, transparent 1px 3px),
-      repeating-linear-gradient(90deg, rgba(110,100,90,.025) 0 1px, transparent 1px 3px);}
+      repeating-linear-gradient(0deg, rgba(100,110,122,.03) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(100,110,122,.025) 0 1px, transparent 1px 3px);}
   body.opened #lock{transform:perspective(900px) rotateX(-58deg) translateY(-30%);opacity:0;filter:blur(1px);pointer-events:none}
 
   canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 
   #snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
   .hint{position:absolute;left:0;right:0;text-align:center;pointer-events:none;
-    font-family:"Nanum Pen Script",cursive;font-size:22px;color:#8a847c;opacity:.75;
+    font-family:"Nanum Pen Script",cursive;font-size:22px;color:#8c9196;opacity:.75;
     transform:rotate(-3deg);transition:opacity .8s ease}
   .hint.hide{opacity:0}
   .sig{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 9vh);
@@ -89,7 +89,7 @@
   const cvs = document.getElementById('pad');
   const ctx = cvs.getContext('2d');
   const knotEl = document.getElementById('knot');
-  const RED = [168,38,52];
+  const RED = [146,46,60];   // 겨울의 가라앉은 붉은 실
   const rgba = a => `rgba(${RED[0]},${RED[1]},${RED[2]},${a})`;
 
   let W=0,H=0,dpr=1, knot={x:0,y:0};
@@ -190,7 +190,7 @@
       const ex=hx*c-hy*sn, ey=hx*sn+hy*c;
       // 그림자 (천에 살짝 뜬 실)
       ctx.beginPath(); ctx.moveTo(mx-ex+.6,my-ey+.9); ctx.lineTo(mx+ex+.6,my+ey+.9);
-      ctx.strokeStyle=`rgba(60,40,40,${.12*alpha})`; ctx.lineWidth=2.2; ctx.stroke();
+      ctx.strokeStyle=`rgba(50,55,65,${.12*alpha})`; ctx.lineWidth=2.2; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(mx-ex,my-ey); ctx.lineTo(mx+ex,my+ey);
       ctx.strokeStyle=rgba(.92*alpha); ctx.lineWidth=2; ctx.stroke();
       // 바늘 구멍
@@ -237,7 +237,7 @@
       // 반쪽 끝에 매달린 실 + 바늘
       retract=Math.min(1,retract+0.02);
       const e=1-(1-retract)**3;
-      const sway=Math.sin(tt*1.1)*9 + Math.sin(tt*2.3)*3;
+      const sway=Math.sin(tt*0.42)*6 + Math.sin(tt*0.97+1)*1.6;   // 찬 공기 속 느린 흔들림
       const len=70*e;
       const ex=tipPt.x+18*e+sway, ey=tipPt.y+len;
       const cx=tipPt.x+4+sway*.3, cy=tipPt.y+len*.55;
