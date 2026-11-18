@@ -57,7 +57,7 @@
   .vee{position:absolute;right:2px;top:15vh;width:54px;pointer-events:none;opacity:.32;transform:rotate(-10deg)}
   .vee path{fill:rgba(196,206,214,.35);stroke:rgba(120,132,145,.6);stroke-width:.7;stroke-dasharray:2.2 1.7}
   /* 종이에 눌려 남은 글씨 자국 */
-  .trace{position:absolute;right:9vw;bottom:calc(env(safe-area-inset-bottom) + 21vh);pointer-events:none;
+  .trace{position:absolute;right:9vw;bottom:calc(env(safe-area-inset-bottom) + 33vh);pointer-events:none;
     font-family:"Nanum Pen Script",cursive;font-size:17px;color:rgba(70,72,78,.045);
     text-shadow:0 1px 0 rgba(255,255,255,.7);transform:rotate(-4deg);letter-spacing:.04em}
   body.opened .vee, body.opened .trace{opacity:0;transition:opacity .8s}
@@ -73,7 +73,6 @@
 
 <div id="lock">
   <canvas id="pad"></canvas>
-  <div class="hint" id="hint">이어 그려보세요</div>
   <svg class="spring" viewBox="0 0 100 150" aria-hidden="true">
     <g class="sway">
       <!-- 유채 -->
@@ -164,7 +163,7 @@
   const rgba = a => `rgba(${RED[0]},${RED[1]},${RED[2]},${a})`;
 
   let W=0,H=0,dpr=1, knot={x:0,y:0};
-  const hintEl = document.getElementById('hint');
+  const hintEl = {style:{},classList:{add(){},remove(){}}};
   let half=[], dot=[], tipPt={x:0,y:0}, heartBox={w:0}, cxH=0;
   const T0=-0.3, T1=2.1;   // 미리 놓인 실이 지나는 구간 (물음표처럼 보이는 갈고리)
   const hp=(t)=>({x:16*Math.sin(t)**3, y:-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))});
@@ -277,8 +276,6 @@
     const tt=t/1000;
 
     // 미리 놓인 반쪽
-    stitches(half,{taut: state==='open'?openT:0});
-    stitches(dot,{taut: state==='open'?openT:0});
 
     // 그린 바늘땀
     if(state==='fail'){
@@ -298,9 +295,9 @@
     if((state==='drawing') && tip){
       const first = strokes[0][0];
       // 서명에서 첫 바늘땀까지 느슨한 실
-      const d = Math.hypot(first.x-tipPt.x, first.y-tipPt.y);
-      if(d>6){ const sag=Math.max(20,d*0.3);
-        threadLine(tipPt.x,tipPt.y,(tipPt.x+first.x)/2,Math.max(tipPt.y,first.y)+sag,first.x,first.y,.55,1.1); }
+      const d = Math.hypot(first.x-knot.x, first.y-knot.y);
+      if(d>6){ const sag=Math.max(30,d*0.25);
+        threadLine(knot.x,knot.y,(knot.x+first.x)/2,Math.max(knot.y,first.y)+sag,first.x,first.y,.55,1.1); }
       // 바늘은 손끝에
       const prev = last[Math.max(0,last.length-6)];
       needle(tip.x,tip.y,Math.atan2(tip.y-prev.y,tip.x-prev.x),1);
@@ -309,11 +306,11 @@
       retract=Math.min(1,retract+0.02);
       const e=1-(1-retract)**3;
       const sway=Math.sin(tt*0.42)*6 + Math.sin(tt*0.97+1)*1.6;   // 찬 공기 속 느린 흔들림
-      const len=70*e;
-      const ex=tipPt.x+18*e+sway, ey=tipPt.y+len;
-      const cx=tipPt.x+4+sway*.3, cy=tipPt.y+len*.55;
-      threadLine(tipPt.x,tipPt.y,cx,cy,ex,ey,.7,1.1);
-      if(e>.3) needle(ex,ey,Math.atan2(ey-cy,ex-cx),(e-.3)/.7);
+      const len=110*e;
+      const ex=knot.x+28*e+sway*.6, ey=knot.y-len;
+      const cx=knot.x+34*e+sway, cy=knot.y-len*.45;
+      threadLine(knot.x,knot.y,cx,cy,ex,ey,.75,1.1);
+      if(e>.3) needle(ex,ey,Math.atan2(ey-cy,ex-cx)+Math.PI,(e-.3)/.7);
     }
     requestAnimationFrame(frame);
   }
@@ -398,7 +395,6 @@
     const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
     const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
     const meanX=xs.reduce((a,b)=>a+b,0)/xs.length;
-    if(meanX<cxH+heartBox.w*0.08 && w>heartBox.w*0.22 && h>heartBox.w*0.35 && REST.some(T=>matches(strokes,T))) return true;
     return isHeart(strokes);   // 하트 하나를 통째로 그려도 열림
   }
 
