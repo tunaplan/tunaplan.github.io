@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f8f7f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>tu.:na.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f8f7f3;
+    --ink:#3d4a5c;          /* 옅은 남색 실 */
+    --faint:#a9b1bb;
+    --sheer-blue:rgba(150,180,215,.16);
+    --sheer-pink:rgba(225,170,180,.12);
+    --thread:rgba(110,140,175,.45);
+    --heart:#c4646e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:var(--paper);
+    font-family:"Noto Serif KR",serif;font-weight:200;color:var(--ink)}
+  /* 천 결 */
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(120,140,170,.025) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(120,140,170,.02) 0 1px, transparent 1px 3px);}
+  /* 반투명 천으로 된 문 */
+  .door{position:fixed;left:50%;top:50%;pointer-events:none;
+    width:min(62vw,300px);height:min(78vh,520px);transform:translate(-50%,-50%);
+    border:1px solid var(--thread);background:var(--sheer-blue);
+    transition:transform 1.4s cubic-bezier(.2,.7,.2,1), opacity 1.2s ease}
+  .door.d2{background:var(--sheer-pink);border-color:rgba(200,140,150,.35);
+    transform:translate(calc(-50% + 14px),calc(-50% - 10px))}
+  .door::after{content:"";position:absolute;inset:14px;border:1px solid rgba(110,140,175,.18)}
+  #lock{position:fixed;inset:0;transition:opacity 1.2s ease}
+  #lock.open{opacity:0;pointer-events:none}
+  #lock.open .door{transform:translate(-50%,-50%) scale(1.6);opacity:0}
+  #lock.open .door.d2{transform:translate(-50%,-50%) scale(1.9);opacity:0}
+  canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+  .hint{position:fixed;top:calc(env(safe-area-inset-top) + 9vh);left:0;right:0;text-align:center;
+    font-size:12px;letter-spacing:.5em;color:var(--faint);pointer-events:none;transition:opacity .5s}
+  .sig{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 7vh);left:0;right:0;text-align:center;
+    font-size:11px;letter-spacing:.3em;color:var(--faint);pointer-events:none}
+  .sig b{font-weight:300;color:var(--ink);letter-spacing:.2em}
+  .shake{animation:shake .5s}
+  @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+  #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    opacity:0;transition:opacity 1.2s ease .5s;pointer-events:none}
+  #app.show{opacity:1;pointer-events:auto}
+  #app h1{font-weight:200;font-size:26px;letter-spacing:.35em}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="door"></div>
+  <div class="door d2"></div>
+  <canvas id="pad"></canvas>
+  <div class="hint" id="hint">그려서 열기</div>
+  <div class="sig">plan by <b>tu.:na.</b></div>
+</div>
+
+<main id="app">
+  <h1>tu.:na.</h1>
+</main>
+
+<script>
+(() => {
+  const cvs = document.getElementById('pad');
+  const ctx = cvs.getContext('2d');
+  const lock = document.getElementById('lock');
+  const hint = document.getElementById('hint');
+  let strokes = [], cur = null, timer = null, busy = false, dpr = 1;
+
+  function resize(){
+    dpr = window.devicePixelRatio || 1;
+    cvs.width = innerWidth * dpr; cvs.height = innerHeight * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    redraw();
+  }
+  addEventListener('resize', resize);
+
+  function redraw(color){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    const base = color || '61,74,92';
+    for(const [dx,dy,a,w] of [[0,0,.85,1.6],[1.6,1.2,.25,1]]){
+      ctx.strokeStyle = `rgba(${base},${a})`; ctx.lineWidth = w;
+      for(const s of strokes){
+        ctx.beginPath();
+        s.forEach((p,i)=> i?ctx.lineTo(p.x+dx,p.y+dy):ctx.moveTo(p.x+dx,p.y+dy));
+        if(s.length===1) ctx.lineTo(s[0].x+dx+.1,s[0].y+dy);
+        ctx.stroke();
+      }
+    }
+  }
+
+  cvs.addEventListener('pointerdown', e=>{
+    if(busy) return;
+    clearTimeout(timer);
+    cvs.setPointerCapture(e.pointerId);
+    cur = [{x:e.clientX,y:e.clientY}]; strokes.push(cur);
+    hint.style.opacity = 0;
+    redraw();
+  });
+  cvs.addEventListener('pointermove', e=>{
+    if(!cur) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for(const c of evs) cur.push({x:c.clientX,y:c.clientY});
+    redraw();
+  });
+  const end = ()=>{
+    if(!cur) return;
+    cur = null;
+    timer = setTimeout(check, 650); // 여러 획으로 그려도 되도록 잠시 기다림
+  };
+  cvs.addEventListener('pointerup', end);
+  cvs.addEventListener('pointercancel', end);
+
+  /* ---------- 하트 인식 ---------- */
+  // 하트 템플릿 (화면 좌표, y 아래로)
+  const TEMPLATE = normalize(Array.from({length:120},(_,i)=>{
+    const t = i/120*Math.PI*2;
+    return {x:16*Math.sin(t)**3, y:-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))};
+  }));
+
+  function resample(pts, n){
+    let len=0; for(let i=1;i<pts.length;i++) len+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+    if(len===0) return [];
+    const step=len/(n-1), out=[pts[0]]; let acc=0, prev=pts[0];
+    for(let i=1;i<pts.length;i++){
+      let p=pts[i], d=Math.hypot(p.x-prev.x,p.y-prev.y);
+      while(acc+d>=step && d>0){
+        const k=(step-acc)/d, q={x:prev.x+k*(p.x-prev.x), y:prev.y+k*(p.y-prev.y)};
+        out.push(q); prev=q; d=Math.hypot(p.x-prev.x,p.y-prev.y); acc=0;
+      }
+      acc+=d; prev=p;
+    }
+    return out;
+  }
+  function normalize(pts){
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
+    const w=(x1-x0)||1,h=(y1-y0)||1;
+    return pts.map(p=>({x:(p.x-x0)/w,y:(p.y-y0)/h}));
+  }
+  const nearest=(p,set)=>{let m=Infinity;for(const q of set){const d=(p.x-q.x)**2+(p.y-q.y)**2;if(d<m)m=d;}return Math.sqrt(m);};
+
+  function isHeart(strokes){
+    let raw = strokes.flat();
+    if(raw.length<10) return false;
+    // 너무 작게 그린 건 무시
+    const xs=raw.map(p=>p.x), ys=raw.map(p=>p.y);
+    const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
+    if(w<60||h<60) return false;
+    const ratio=w/h; if(ratio<0.55||ratio>1.9) return false;
+
+    let pts=[]; for(const s of strokes){ if(s.length>1) pts.push(...resample(s, Math.max(8,Math.round(s.length)))); }
+    pts = normalize(resample(pts.length?pts:raw, 128));
+
+    // 그린 선 → 하트까지 (군더더기 없는지)
+    const a = pts.map(p=>nearest(p,TEMPLATE)).sort((x,y)=>x-y);
+    // 하트 → 그린 선 (하트 모양을 다 덮었는지, 특히 위쪽 오목한 부분)
+    const b = TEMPLATE.map(p=>nearest(p,pts)).sort((x,y)=>x-y);
+    const mean = (a.reduce((s,v)=>s+v,0)/a.length + b.reduce((s,v)=>s+v,0)/b.length)/2;
+    const a90 = a[Math.floor(a.length*.9)], bMax = b[Math.floor(b.length*.97)];
+    return mean<0.07 && a90<0.15 && bMax<0.16;
+  }
+  window.__isHeart = isHeart;
+
+  function check(){
+    if(!strokes.length) return;
+    busy = true;
+    if(isHeart(strokes)){
+      redraw('196,100,110');
+      if(navigator.vibrate) navigator.vibrate(20);
+      setTimeout(()=>{
+        lock.classList.add('open');
+        document.getElementById('app').classList.add('show');
+        try{ sessionStorage.setItem('tuna-open','1'); }catch(e){}
+      }, 450);
+    } else {
+      lock.classList.add('shake');
+      if(navigator.vibrate) navigator.vibrate([30,40,30]);
+      setTimeout(()=>{
+        lock.classList.remove('shake');
+        strokes=[]; redraw(); busy=false;
+        hint.style.opacity = 1;
+      }, 500);
+    }
+  }
+
+  // 같은 탭에서 이미 열었으면 바로 통과
+  try{ if(sessionStorage.getItem('tuna-open')==='1'){ lock.classList.add('open'); document.getElementById('app').classList.add('show'); } }catch(e){}
+  resize();
+})();
+</script>
+</body>
+</html>
