@@ -3,121 +3,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#f8f7f3">
+<meta name="theme-color" content="#f7f5f0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>tu.:na.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --paper:#f8f7f3;
-    --ink:#3d4a5c;          /* 옅은 남색 실 */
-    --faint:#a9b1bb;
-    --sheer-blue:rgba(150,180,215,.16);
-    --sheer-pink:rgba(225,170,180,.12);
-    --thread:rgba(110,140,175,.45);
-    --heart:#c4646e;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;overflow:hidden;background:var(--paper);
+  :root{ --paper:#f7f5f0; --ink:#4a4744; --faint:#aaa59c; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{height:100%;overflow:hidden;background:#ece9e2;
     font-family:"Noto Serif KR",serif;font-weight:200;color:var(--ink)}
-  /* 천 결 */
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+
+  /* 앱 (종이 뒤) */
+  #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper)}
+  #app h1{font-weight:200;font-size:24px;letter-spacing:.35em;opacity:0;transition:opacity 1.4s ease .9s}
+  body.opened #app h1{opacity:1}
+
+  /* 잠금: 얇은 천 같은 종이 한 장 */
+  #lock{position:fixed;inset:0;background:var(--paper);transform-origin:50% 0%;
+    transition:transform 1.8s cubic-bezier(.5,0,.2,1), opacity 1.6s ease .2s, filter 1.6s ease;
+    will-change:transform}
+  #lock::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
     background-image:
-      repeating-linear-gradient(0deg, rgba(120,140,170,.025) 0 1px, transparent 1px 3px),
-      repeating-linear-gradient(90deg, rgba(120,140,170,.02) 0 1px, transparent 1px 3px);}
-  /* 반투명 천으로 된 문 */
-  .door{position:fixed;left:50%;top:50%;pointer-events:none;
-    width:min(62vw,300px);height:min(78vh,520px);transform:translate(-50%,-50%);
-    border:1px solid var(--thread);background:var(--sheer-blue);
-    transition:transform 1.4s cubic-bezier(.2,.7,.2,1), opacity 1.2s ease}
-  .door.d2{background:var(--sheer-pink);border-color:rgba(200,140,150,.35);
-    transform:translate(calc(-50% + 14px),calc(-50% - 10px))}
-  .door::after{content:"";position:absolute;inset:14px;border:1px solid rgba(110,140,175,.18)}
-  #lock{position:fixed;inset:0;transition:opacity 1.2s ease}
-  #lock.open{opacity:0;pointer-events:none}
-  #lock.open .door{transform:translate(-50%,-50%) scale(1.6);opacity:0}
-  #lock.open .door.d2{transform:translate(-50%,-50%) scale(1.9);opacity:0}
-  canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
-  .hint{position:fixed;top:calc(env(safe-area-inset-top) + 9vh);left:0;right:0;text-align:center;
-    font-size:12px;letter-spacing:.5em;color:var(--faint);pointer-events:none;transition:opacity .5s}
-  .sig{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 7vh);left:0;right:0;text-align:center;
-    font-size:11px;letter-spacing:.3em;color:var(--faint);pointer-events:none}
-  .sig b{font-weight:300;color:var(--ink);letter-spacing:.2em}
-  .shake{animation:shake .5s}
-  @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
-  #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-    opacity:0;transition:opacity 1.2s ease .5s;pointer-events:none}
-  #app.show{opacity:1;pointer-events:auto}
-  #app h1{font-weight:200;font-size:26px;letter-spacing:.35em}
+      repeating-linear-gradient(0deg, rgba(110,100,90,.03) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(110,100,90,.025) 0 1px, transparent 1px 3px);}
+  body.opened #lock{transform:perspective(900px) rotateX(-58deg) translateY(-30%);opacity:0;filter:blur(1px);pointer-events:none}
+
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+
+  .sig{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 9vh);
+    text-align:center;pointer-events:none;line-height:1}
+  .sig small{display:block;font-size:10px;letter-spacing:.45em;color:var(--faint);margin-bottom:12px;padding-left:.45em}
+  .sig b{font-weight:300;font-size:17px;letter-spacing:.22em;color:var(--ink)}
 </style>
 </head>
 <body>
 
-<div id="lock">
-  <div class="door"></div>
-  <div class="door d2"></div>
-  <canvas id="pad"></canvas>
-  <div class="sig">plan by <b>tu.:na.</b></div>
-</div>
+<main id="app"><h1>tu.:na.</h1></main>
 
-<main id="app">
-  <h1>tu.:na.</h1>
-</main>
+<div id="lock">
+  <canvas id="pad"></canvas>
+  <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
+</div>
 
 <script>
 (() => {
   const cvs = document.getElementById('pad');
   const ctx = cvs.getContext('2d');
-  const lock = document.getElementById('lock');
-  const hint = {style:{}};
-  let strokes = [], cur = null, timer = null, busy = false, dpr = 1;
+  const knotEl = document.getElementById('knot');
+  const RED = [168,38,52];
+  const rgba = a => `rgba(${RED[0]},${RED[1]},${RED[2]},${a})`;
+
+  let W=0,H=0,dpr=1, knot={x:0,y:0};
+  let strokes=[], cur=null, timer=null, state='idle'; // idle | drawing | fail | open
+  let failT=0, openT=0, retract=1;
 
   function resize(){
-    dpr = window.devicePixelRatio || 1;
-    cvs.width = innerWidth * dpr; cvs.height = innerHeight * dpr;
+    dpr = Math.min(window.devicePixelRatio||1, 3);
+    W = innerWidth; H = innerHeight;
+    cvs.width = W*dpr; cvs.height = H*dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    redraw();
+    const r = knotEl.getBoundingClientRect();
+    knot = {x:r.left + r.width*0.55, y:r.bottom - 3};
   }
   addEventListener('resize', resize);
+  document.fonts && document.fonts.ready.then(resize);
 
-  function redraw(color){
-    ctx.clearRect(0,0,cvs.width,cvs.height);
-    ctx.lineCap='round'; ctx.lineJoin='round';
-    const base = color || '61,74,92';
-    for(const [dx,dy,a,w] of [[0,0,.85,1.6],[1.6,1.2,.25,1]]){
-      ctx.strokeStyle = `rgba(${base},${a})`; ctx.lineWidth = w;
-      for(const s of strokes){
-        ctx.beginPath();
-        s.forEach((p,i)=> i?ctx.lineTo(p.x+dx,p.y+dy):ctx.moveTo(p.x+dx,p.y+dy));
-        if(s.length===1) ctx.lineTo(s[0].x+dx+.1,s[0].y+dy);
-        ctx.stroke();
-      }
-    }
-  }
-
+  /* ---------- 입력 ---------- */
   cvs.addEventListener('pointerdown', e=>{
-    if(busy) return;
+    if(state==='fail'||state==='open') return;
     clearTimeout(timer);
     cvs.setPointerCapture(e.pointerId);
-    cur = [{x:e.clientX,y:e.clientY}]; strokes.push(cur);
-    hint.style.opacity = 0;
-    redraw();
+    cur=[{x:e.clientX,y:e.clientY}]; strokes.push(cur); state='drawing';
   });
   cvs.addEventListener('pointermove', e=>{
     if(!cur) return;
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-    for(const c of evs) cur.push({x:c.clientX,y:c.clientY});
-    redraw();
+    for(const c of evs){
+      const l=cur[cur.length-1];
+      if(Math.hypot(c.clientX-l.x,c.clientY-l.y)>1.5) cur.push({x:c.clientX,y:c.clientY});
+    }
   });
-  const end = ()=>{
-    if(!cur) return;
-    cur = null;
-    timer = setTimeout(check, 650); // 여러 획으로 그려도 되도록 잠시 기다림
-  };
+  const end=()=>{ if(!cur) return; cur=null; timer=setTimeout(check, 700); };
   cvs.addEventListener('pointerup', end);
   cvs.addEventListener('pointercancel', end);
+
+  /* ---------- 그리기 ---------- */
+  // 경로를 일정 간격으로 나눔
+  function spaced(pts, gap){
+    const out=[pts[0]]; let acc=0;
+    for(let i=1;i<pts.length;i++){
+      let a=out[out.length-1], b=pts[i], d=Math.hypot(b.x-a.x,b.y-a.y);
+      while(d>=gap){ const k=gap/d; a={x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k}; out.push(a); d=Math.hypot(b.x-a.x,b.y-a.y); }
+    }
+    return out;
+  }
+
+  function threadLine(x1,y1,cx,cy,x2,y2,a,w){
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo(cx,cy,x2,y2);
+    ctx.strokeStyle=rgba(a); ctx.lineWidth=w; ctx.stroke();
+  }
+
+  function needle(x,y,ang,alpha){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.globalAlpha=alpha;
+    ctx.strokeStyle='rgba(120,118,115,.9)'; ctx.lineWidth=1.1; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-3,0); ctx.lineTo(24,0); ctx.stroke();      // 몸통
+    ctx.beginPath(); ctx.ellipse(-0.5,0,2.4,1.1,0,0,Math.PI*2); ctx.lineWidth=.8; ctx.stroke(); // 바늘귀
+    ctx.restore();
+  }
+
+  // 홈질 바늘땀
+  function stitches(pts, opts={}){
+    const {fall=0, taut=0} = opts;
+    const s = spaced(pts, 5);
+    ctx.lineCap='round';
+    if(taut>0){ // 하나로 이어진 실
+      ctx.beginPath(); s.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+      ctx.strokeStyle=rgba(.9*taut); ctx.lineWidth=1.8; ctx.stroke();
+    }
+    for(let i=0;i+1<s.length;i+=2){
+      const a=s[i], b=s[i+1];
+      const seed=Math.sin(i*12.9898)*43758.5453, r=seed-Math.floor(seed);
+      const dy = fall*fall*(60+r*140), dx = fall*(r-.5)*40, rot=fall*(r-.5)*2;
+      const alpha = (1-fall)*(1-taut*0.6);
+      if(alpha<=0.01) continue;
+      const mx=(a.x+b.x)/2+dx, my=(a.y+b.y)/2+dy, hx=(b.x-a.x)/2, hy=(b.y-a.y)/2;
+      const c=Math.cos(rot), sn=Math.sin(rot);
+      const ex=hx*c-hy*sn, ey=hx*sn+hy*c;
+      // 그림자 (천에 살짝 뜬 실)
+      ctx.beginPath(); ctx.moveTo(mx-ex+.6,my-ey+.9); ctx.lineTo(mx+ex+.6,my+ey+.9);
+      ctx.strokeStyle=`rgba(60,40,40,${.12*alpha})`; ctx.lineWidth=2.2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx-ex,my-ey); ctx.lineTo(mx+ex,my+ey);
+      ctx.strokeStyle=rgba(.92*alpha); ctx.lineWidth=2; ctx.stroke();
+      // 바늘 구멍
+      if(fall<.05){
+        ctx.fillStyle=`rgba(80,70,65,${.18*alpha})`;
+        ctx.beginPath(); ctx.arc(a.x,a.y,.7,0,7); ctx.fill();
+      }
+    }
+  }
+
+  function frame(t){
+    ctx.clearRect(0,0,W,H);
+    const tt=t/1000;
+
+    // 그린 바늘땀
+    if(state==='fail'){
+      failT=Math.min(1,failT+0.022);
+      strokes.forEach(s=>s.length>1&&stitches(s,{fall:failT}));
+      if(failT>=1){ strokes=[]; state='idle'; retract=0; }
+    } else if(state==='open'){
+      openT=Math.min(1,openT+0.03);
+      strokes.forEach(s=>s.length>1&&stitches(s,{taut:openT}));
+    } else {
+      strokes.forEach(s=>s.length>1&&stitches(s));
+    }
+
+    // 서명 끝에서 나온 실
+    const last = strokes.length ? strokes[strokes.length-1] : null;
+    const tip = last ? last[last.length-1] : null;
+    if((state==='drawing') && tip){
+      const first = strokes[0][0];
+      // 서명에서 첫 바늘땀까지 느슨한 실
+      const sag = Math.max(40, Math.hypot(first.x-knot.x, first.y-knot.y)*0.25);
+      threadLine(knot.x,knot.y,(knot.x+first.x)/2,Math.max(knot.y,first.y)+sag,first.x,first.y,.55,1.1);
+      // 바늘은 손끝에
+      const prev = last[Math.max(0,last.length-6)];
+      needle(tip.x,tip.y,Math.atan2(tip.y-prev.y,tip.x-prev.x),1);
+    } else if(state==='idle'){
+      // 살랑이는 실 + 바늘
+      retract=Math.min(1,retract+0.02);
+      const e=1-(1-retract)**3;
+      const sway=Math.sin(tt*1.1)*10 + Math.sin(tt*2.3)*3;
+      const len=110*e;
+      const ex=knot.x+28*e+sway*.6, ey=knot.y-len;
+      const cx=knot.x+34*e+sway, cy=knot.y-len*.45;
+      threadLine(knot.x,knot.y,cx,cy,ex,ey,.75,1.1);
+      if(e>.3){
+        const ang=Math.atan2(ey-cy,ex-cx);
+        needle(ex,ey,ang+Math.PI,(e-.3)/.7);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
 
   /* ---------- 하트 인식 ---------- */
   // 하트 템플릿 (화면 좌표, y 아래로)
@@ -179,31 +248,25 @@
   }
   window.__isHeart = isHeart;
 
+
   function check(){
     if(!strokes.length) return;
-    busy = true;
     if(isHeart(strokes)){
-      redraw('196,100,110');
-      if(navigator.vibrate) navigator.vibrate(20);
+      state='open'; openT=0;
+      navigator.vibrate && navigator.vibrate(18);
       setTimeout(()=>{
-        lock.classList.add('open');
-        document.getElementById('app').classList.add('show');
+        document.body.classList.add('opened');
         try{ sessionStorage.setItem('tuna-open','1'); }catch(e){}
-      }, 450);
+      }, 700);
     } else {
-      lock.classList.add('shake');
-      if(navigator.vibrate) navigator.vibrate([30,40,30]);
-      setTimeout(()=>{
-        lock.classList.remove('shake');
-        strokes=[]; redraw(); busy=false;
-        hint.style.opacity = 1;
-      }, 500);
+      state='fail'; failT=0;
+      navigator.vibrate && navigator.vibrate([25,40,25]);
     }
   }
 
-  // 같은 탭에서 이미 열었으면 바로 통과
-  try{ if(sessionStorage.getItem('tuna-open')==='1'){ lock.classList.add('open'); document.getElementById('app').classList.add('show'); } }catch(e){}
+  try{ if(sessionStorage.getItem('tuna-open')==='1') document.body.classList.add('opened'); }catch(e){}
   resize();
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
