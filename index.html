@@ -32,7 +32,6 @@
 
   canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 
-  #snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
   .hint{position:absolute;left:0;right:0;text-align:center;pointer-events:none;
     font-family:"Nanum Pen Script",cursive;font-size:22px;color:#8c9196;opacity:.75;
     transform:rotate(-3deg);transition:opacity .8s ease}
@@ -71,37 +70,6 @@
   <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
 </div>
 
-<canvas id="snow"></canvas>
-
-<script>
-/* 아련하게 내리는 눈 */
-(() => {
-  const c=document.getElementById('snow'), x=c.getContext('2d');
-  let W,H,flakes=[];
-  function size(){
-    const d=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight;
-    c.width=W*d; c.height=H*d; x.setTransform(d,0,0,d,0,0);
-    const n=Math.round(W*H/9000);
-    flakes=Array.from({length:n},()=>mk(Math.random()*H));
-  }
-  function mk(y){
-    const z=Math.random();                         // 멀고 가까움
-    return {x:Math.random()*W, y, z, r:.6+z*1.8, v:.15+z*.45, ph:Math.random()*6.3, a:.10+z*.22};
-  }
-  addEventListener('resize',size); size();
-  (function loop(t){
-    x.clearRect(0,0,W,H);
-    for(const f of flakes){
-      f.y+=f.v; f.x+=Math.sin(t/2600+f.ph)*.22*(.4+f.z);
-      if(f.y>H+6) Object.assign(f,mk(-6));
-      const g=x.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*2.2);
-      g.addColorStop(0,`rgba(150,160,172,${f.a})`); g.addColorStop(1,'rgba(150,160,172,0)');
-      x.fillStyle=g; x.beginPath(); x.arc(f.x,f.y,f.r*2.2,0,7); x.fill();
-    }
-    requestAnimationFrame(loop);
-  })(0);
-})();
-</script>
 <script>
 (() => {
   const cvs = document.getElementById('pad');
@@ -253,10 +221,10 @@
       // 반쪽 끝에 매달린 실 + 바늘
       retract=Math.min(1,retract+0.02);
       const e=1-(1-retract)**3;
-      const sway=Math.sin(tt*0.42)*6 + Math.sin(tt*0.97+1)*1.6;   // 찬 공기 속 느린 흔들림
-      const len=110*e;
-      const ex=knot.x+28*e+sway*.6, ey=knot.y-len;
-      const cx=knot.x+34*e+sway, cy=knot.y-len*.45;
+      const sway=Math.sin(tt*0.9)*20 + Math.sin(tt*2.1+1)*5;   // 바람에 스스로 흔들리는 실
+      const len=110*e*(1+0.03*Math.sin(tt*0.6));
+      const ex=knot.x+28*e+sway, ey=knot.y-len+Math.abs(sway)*.15;
+      const cx=knot.x+34*e+sway*.45, cy=knot.y-len*.45;
       threadLine(knot.x,knot.y,cx,cy,ex,ey,.75,1.1);
       if(e>.3) needle(ex,ey,Math.atan2(ey-cy,ex-cx)+Math.PI,(e-.3)/.7);
     }
