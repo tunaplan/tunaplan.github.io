@@ -59,7 +59,6 @@
   <div class="door"></div>
   <div class="door d2"></div>
   <canvas id="pad"></canvas>
-  <div class="hint" id="hint">그려서 열기</div>
   <div class="sig">plan by <b>tu.:na.</b></div>
 </div>
 
@@ -72,7 +71,7 @@
   const cvs = document.getElementById('pad');
   const ctx = cvs.getContext('2d');
   const lock = document.getElementById('lock');
-  const hint = document.getElementById('hint');
+  const hint = {style:{}};
   let strokes = [], cur = null, timer = null, busy = false, dpr = 1;
 
   function resize(){
@@ -156,18 +155,27 @@
     const xs=raw.map(p=>p.x), ys=raw.map(p=>p.y);
     const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
     if(w<60||h<60) return false;
-    const ratio=w/h; if(ratio<0.55||ratio>1.9) return false;
+    const ratio=w/h; if(ratio<0.4||ratio>2.6) return false;
 
     let pts=[]; for(const s of strokes){ if(s.length>1) pts.push(...resample(s, Math.max(8,Math.round(s.length)))); }
     pts = normalize(resample(pts.length?pts:raw, 128));
 
-    // 그린 선 → 하트까지 (군더더기 없는지)
+    // 1) 위쪽: 가운데가 양옆 볼록한 곳보다 들어가 있어야 함 (하트의 핵심)
+    // 위쪽 윤곽선: x 구간별 가장 위 점
+    const N=20, prof=Array(N).fill(0.65);
+    for(const p of pts) if(p.y<0.65){const k=Math.min(N-1,Math.floor(p.x*N)); prof[k]=Math.min(prof[k],p.y);}
+    let best=0;
+    for(let i=0;i<N;i++) for(let j=i+4;j<N;j++){           // 두 봉우리 i, j
+      let valley=0; for(let k=i+1;k<j;k++) valley=Math.max(valley,prof[k]);
+      best=Math.max(best, valley-Math.max(prof[i],prof[j]));
+    }
+    if(best<0.06) return false;
+
+    // 2) 전체: 대강 하트 느낌이면 통과 (아주 느슨하게)
     const a = pts.map(p=>nearest(p,TEMPLATE)).sort((x,y)=>x-y);
-    // 하트 → 그린 선 (하트 모양을 다 덮었는지, 특히 위쪽 오목한 부분)
     const b = TEMPLATE.map(p=>nearest(p,pts)).sort((x,y)=>x-y);
     const mean = (a.reduce((s,v)=>s+v,0)/a.length + b.reduce((s,v)=>s+v,0)/b.length)/2;
-    const a90 = a[Math.floor(a.length*.9)], bMax = b[Math.floor(b.length*.97)];
-    return mean<0.07 && a90<0.15 && bMax<0.16;
+    return mean<0.15 && a[a.length>>1]<0.09 && a[Math.floor(a.length*.85)]<0.3;
   }
   window.__isHeart = isHeart;
 
