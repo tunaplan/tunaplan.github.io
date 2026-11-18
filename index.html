@@ -37,6 +37,14 @@
     font-family:"Nanum Pen Script",cursive;font-size:22px;color:#8c9196;opacity:.75;
     transform:rotate(-3deg);transition:opacity .8s ease}
   .hint.hide{opacity:0}
+  /* 구석의 유채 — 보일 듯 말 듯, 봄을 기다리는 마음 */
+  .spring{position:absolute;left:10px;bottom:-4px;width:48px;pointer-events:none;opacity:.5;
+    transform-origin:50% 100%;animation:breeze 11s ease-in-out infinite}
+  .spring .st{fill:none;stroke:rgba(112,132,98,.85);stroke-width:1.1;stroke-linecap:round;stroke-dasharray:3 2.2}
+  .spring .pt{fill:rgba(222,196,96,.55);stroke:rgba(196,168,70,.6);stroke-width:.5}
+  .spring .bd{fill:rgba(170,176,96,.6)}
+  @keyframes breeze{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.4deg)}}
+  body.opened .spring{opacity:0;transition:opacity .8s}
   .sig{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 9vh);
     text-align:center;pointer-events:none;line-height:1}
   .sig small{display:block;font-size:10px;letter-spacing:.45em;color:var(--faint);margin-bottom:12px;padding-left:.45em}
@@ -50,6 +58,27 @@
 <div id="lock">
   <canvas id="pad"></canvas>
   <div class="hint" id="hint">이어 그려보세요</div>
+  <svg class="spring" viewBox="0 0 60 124" aria-hidden="true">
+    <!-- 작은 새싹 -->
+    <path class="st" d="M14 124 C14 116 15 111 17 106"/>
+    <path class="st" d="M17 106 C12 104 9 100 8 97 C12 97 16 101 17 106"/>
+    <path class="st" d="M17 106 C21 102 25 101 27 101 C25 105 21 107 17 106"/>
+    <!-- 유채 한 줄기 -->
+    <path class="st" d="M34 124 C34 106 31 92 33 64"/>
+    <path class="st" d="M33 100 C25 97 19 90 17 83 C24 85 30 91 33 98"/>
+    <path class="st" d="M33 84 C38 80 43 79 46 80 C43 84 38 86 33 85"/>
+    <g transform="translate(33 61) rotate(12)">
+      <ellipse class="pt" cx="0" cy="-4" rx="2.2" ry="3.4"/>
+      <ellipse class="pt" cx="4" cy="0" rx="3.4" ry="2.2"/>
+      <ellipse class="pt" cx="0" cy="4" rx="2.2" ry="3.4"/>
+      <ellipse class="pt" cx="-4" cy="0" rx="3.4" ry="2.2"/>
+      <circle cx="0" cy="0" r="1" fill="rgba(170,140,60,.6)"/>
+    </g>
+    <!-- 아직 피지 않은 꽃봉오리 -->
+    <ellipse class="bd" cx="30" cy="52" rx="1.6" ry="2.4" transform="rotate(-15 30 52)"/>
+    <ellipse class="bd" cx="36" cy="50" rx="1.5" ry="2.3" transform="rotate(14 36 50)"/>
+    <ellipse class="bd" cx="33" cy="46" rx="1.4" ry="2.1"/>
+  </svg>
   <div class="sig"><small>plan by</small><b>tu.:na<span id="knot">.</span></b></div>
 </div>
 
