@@ -58,7 +58,7 @@
   const cvs = document.getElementById('pad');
   const ctx = cvs.getContext('2d');
   const knotEl = document.getElementById('knot');
-  const RED = [146,46,60];   // 겨울의 가라앉은 붉은 실
+  const RED = [40,62,104];   // 쪽물 들인 깊은 남색 실
   const rgba = (a,c=RED) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
   let W=0,H=0,dpr=1, knot={x:0,y:0};
@@ -118,9 +118,9 @@
     path(); ctx.strokeStyle=rgba(.88*alpha); ctx.lineWidth=w; ctx.stroke();
     // 꼬임: 짧게 끊긴 밝은 결과 어두운 결
     ctx.setLineDash([1.2,2.3]);
-    path(); ctx.strokeStyle=`rgba(255,235,235,${.22*alpha})`; ctx.lineWidth=w*.45; ctx.stroke();
+    path(); ctx.strokeStyle=`rgba(226,236,255,${.22*alpha})`; ctx.lineWidth=w*.45; ctx.stroke();
     ctx.lineDashOffset=1.7;
-    path(); ctx.strokeStyle=`rgba(70,10,20,${.25*alpha})`; ctx.lineWidth=w*.4; ctx.stroke();
+    path(); ctx.strokeStyle=`rgba(8,16,40,${.25*alpha})`; ctx.lineWidth=w*.4; ctx.stroke();
     ctx.setLineDash([]); ctx.lineDashOffset=0;
   }
 
