@@ -56,6 +56,7 @@
   let board;
   if(q.has('demo')) board=window.NN_DEMO;
   else { const r=await fetch(`${SB}/rest/v1/rpc/board`,{method:'POST',headers:{apikey:PK,'Content-Type':'application/json'},body:'{}'}); board=await r.json(); }
+  if(!(board.closed||[]).length && window.NN_EXAMPLE) board.closed=[window.NN_EXAMPLE];
   const r=(board.closed||[]).find(x=>x.id===id) || (board.closed||[])[0];
   if(!r){ document.getElementById('note').textContent='닫힌 폭이 아직 없어요.'; return; }
   const ss=r.sheets||[], no=pad2(r.id), period=`${esc(r.from)} — ${esc(r.to)}`;

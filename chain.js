@@ -31,7 +31,11 @@
 
   const pad2 = n => String(n).padStart(2,'0');
   const esc = t => String(t||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const cnt = document.querySelector('.bar .cnt');
+  const cnt = {set textContent(v){}};
+  // 메뉴 셋: 만들기(진행 중인 폭) · 만들어진 것(닫힌 폭들) · 책처럼(책장)
+  let view = 'make';
+  const navs = [...document.querySelectorAll('.bar nav a')];
+  navs.forEach(a => a.addEventListener('click', ()=>{ view = a.dataset.v; document.body.classList.remove('far'); render(); app.scrollTo({top:0}); }));
 
   // 안쪽은 규칙: 꽉 찬 장, 번호·제목·시각, 1px 선. 기울임·흐림·느린 등장 없음.
   function sheetItem(row, folded){
@@ -51,8 +55,11 @@
   }
   function render(){
     chain.innerHTML = '';
+    navs.forEach(a => a.classList.toggle('on', a.dataset.v === view));
+    if(view === 'made') return renderMade();
+    if(view === 'book') return renderShelf();
     // 진행 중인 폭
-    const no = (board.closed.length ? board.closed[0].id : 0) + 1;
+    const no = (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1;
     const head = document.createElement('div'); head.className = 'roll current';
     head.innerHTML = `<span>폭 ${pad2(board.open ? board.open.id : no)}</span><em></em><time>${size ? pad2(rows.length)+' / '+pad2(size) : ''}</time>`;
     chain.appendChild(head);
@@ -74,7 +81,10 @@
       }
     });
     it.appendChild(next); chain.appendChild(it);
-    // 닫힌 폭들 — 누구나 본다. 모두 펼쳐진 채로.
+  }
+  // 만들어진 것: 닫힌 폭들 — 누구나 본다. 모두 펼쳐진 채로.
+  function renderMade(){
+    if(!board.closed.length){ chain.innerHTML = '<div class="empty">아직 닫힌 폭이 없어요</div>'; return; }
     board.closed.forEach(r => {
       const h = document.createElement('div'); h.className = 'roll closed';
       h.innerHTML = `<span>폭 ${pad2(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="bk">엮음</span>`;
@@ -82,6 +92,18 @@
       chain.appendChild(h);
       (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
     });
+  }
+  // 책처럼: 판지 표지들이 꽂힌 책장. 누르면 책으로.
+  function renderShelf(){
+    if(!board.closed.length){ chain.innerHTML = '<div class="empty">아직 엮인 책이 없어요</div>'; return; }
+    const sh = document.createElement('div'); sh.className = 'shelf';
+    sh.innerHTML = board.closed.map((r,i) => `<div class="bk-item" data-i="${i}"><div class="pc cover">
+        <div class="face front board"><div class="t deboss" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
+          <div class="t deboss cv-name">${esc(r.title) || '&nbsp;'}</div>
+          <div class="t deboss" style="right:calc(var(--mm)*12);bottom:calc(var(--mm)*12)">폭 ${pad2(r.id)}</div><i class="hole"></i></div>${RING}</div>
+        <div class="meta">폭 ${pad2(r.id)}  ${esc(r.title)}<br><span>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</span></div></div>`).join('');
+    sh.querySelectorAll('.bk-item').forEach(el => el.addEventListener('click', ()=>openBook(board.closed[+el.dataset.i])));
+    chain.appendChild(sh);
   }
 
   /* 물러서서 전체 보기: 두 손가락으로 오므리면 한 폭으로, 벌리거나 한 장을 누르면 다시 가까이 */
@@ -208,6 +230,7 @@
     else {
       try{ board = await rpc('board') || {open:null, closed:[]}; board.closed = board.closed || []; }
       catch(e){ board = {open:null, closed:[]}; }
+      if(!board.closed.length && window.NN_EXAMPLE) board.closed = [window.NN_EXAMPLE];   // 진짜 폭이 생기기 전까지만 예시 폭 00
     }
     rows = board.open ? board.open.sheets || [] : [];
     size = board.open ? board.open.size : null;

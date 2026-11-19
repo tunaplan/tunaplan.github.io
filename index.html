@@ -29,7 +29,20 @@
   .bar{position:sticky;top:0;z-index:6;height:var(--bar);display:flex;align-items:center;justify-content:space-between;
     padding:0 18px;background:var(--paper);border-bottom:1px solid var(--line);
     font-size:11px;font-weight:300;letter-spacing:.18em;color:var(--ink);font-variant-numeric:tabular-nums}
-  .bar .cnt{color:var(--faint)}
+  /* 메뉴 셋: 지금 있는 곳만 먹색, 아래 남색 홈질 한 줄(가까이 봐야 실땀) */
+  .bar nav{display:flex;gap:18px}
+  .bar nav a{position:relative;color:var(--faint);text-decoration:none;cursor:pointer;padding:6px 0;letter-spacing:.12em}
+  .bar nav a.on{color:var(--ink)}
+  .bar nav a.on::after{content:"";position:absolute;left:0;right:.12em;bottom:1px;height:1px;
+    background:repeating-linear-gradient(90deg,rgba(40,62,104,.75) 0 3px,transparent 3px 5px)}
+  /* 책처럼: 책장 — 판지 표지들이 두 줄로 */
+  .shelf{display:grid;grid-template-columns:1fr 1fr;gap:28px 14px;padding:26px 18px 0;
+    --pw:calc((min(100vw,480px) - 36px - 14px) / 2);--mm:calc(var(--pw) / 100)}
+  .shelf .bk-item{cursor:pointer}
+  .shelf .pc{width:var(--pw);cursor:pointer}
+  .shelf .meta{margin-top:12px;font-size:10px;letter-spacing:.12em;color:var(--ink);font-weight:300;font-variant-numeric:tabular-nums;line-height:1.7}
+  .shelf .meta span{color:var(--faint)}
+  .empty{padding:60px 18px;font-size:11px;letter-spacing:.14em;color:var(--faint)}
   #chain{position:relative;width:var(--sw);margin:0 auto;padding-bottom:30vh;transform-origin:50% 0;
     transition:transform .5s cubic-bezier(.2,0,0,1)}
   body.far #app{overflow:hidden}
@@ -206,7 +219,7 @@
 </head>
 <body>
 
-<main id="app"><header class="bar"><span>n.n.</span><span class="cnt"></span><span>tu.:na.</span></header><div id="chain"></div></main>
+<main id="app"><header class="bar"><span>n.n.</span><nav><a data-v="make">만들기</a><a data-v="made">만들어진 것</a><a data-v="book">책처럼</a></nav><span>tu.:na.</span></header><div id="chain"></div></main>
 
 <div id="book"><button class="bx" aria-label="닫기">×</button><a class="pr" target="_blank" rel="noopener">인쇄</a><div class="pages"></div><div class="pn"></div></div>
 
