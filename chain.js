@@ -70,7 +70,7 @@
     seams.innerHTML = '';
     const sh = [...chain.querySelectorAll('.sheet')];
     const next = chain.querySelector('.next');
-    const w = chain.clientWidth, x0 = w*0.07;
+    const w = chain.clientWidth, x0 = -9;   // 실은 장 바깥 가장자리로 — 누구의 장도 가리지 않는다
     const xs = y => x0 + Math.sin(y/70)*2.4 + Math.sin(y/23)*.8;
     let html = '';
     let yEnd = next ? next.offsetTop : 0;
@@ -83,7 +83,7 @@
       for(let i=1;i<sh.length;i++){
         const y = sh[i].offsetTop;
         for(let k=0;k<3;k++){
-          const x = xs(y) + 5 + k*7;
+          const x = xs(y) + 4 + k*6;
           html += `<line x1="${(x-2.5).toFixed(1)}" y1="${y-5}" x2="${(x+2.5).toFixed(1)}" y2="${y+5}" stroke="${IND}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>`;
         }
       }
@@ -136,6 +136,20 @@
     setFar(false);
     if(s) setTimeout(()=>s.scrollIntoView({behavior:'smooth', block:'start'}), 900);
   }, true);
+
+  /* 한 장만: 가까이서 한 장을 누르면 그 장 혼자 화면에 선다. 이웃도 실도 물러난다. */
+  const solo = document.createElement('div'); solo.id = 'solo';
+  solo.innerHTML = '<img alt=""><time></time>';
+  document.body.appendChild(solo);
+  chain.addEventListener('click', e=>{
+    if(document.body.classList.contains('far')) return;
+    const s = e.target.closest('.sheet'); if(!s || s.classList.contains('last')) return;
+    const im = s.querySelector('img.pic'); if(!im) return;
+    solo.querySelector('img').src = im.src;
+    solo.querySelector('time').textContent = s.querySelector('time').textContent;
+    document.body.classList.add('solo');
+  });
+  solo.addEventListener('click', ()=>document.body.classList.remove('solo'));
 
   // 처음 들어올 때: 먼저 전체가 한 폭으로 보이고, 천천히 첫 장으로 다가간다
   let introDone = false;

@@ -35,6 +35,14 @@
   body.far #chain{transform:scale(var(--fs,1))}
   .sheet time{transition:opacity .8s}
   body.far .sheet time{opacity:0}
+  #app{transition:opacity 1.6s ease 1s, filter .9s ease}
+  body.solo #app{filter:blur(6px);opacity:.25;transition:opacity .9s ease, filter .9s ease}
+  #solo{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .9s ease}
+  body.solo #solo{opacity:1;pointer-events:auto}
+  #solo img{width:min(86vw, calc((100svh - 120px) * .75));aspect-ratio:3/4;object-fit:cover;background:#f7f8f6;
+    box-shadow:0 0 0 .5px rgba(68,71,76,.12), 0 2px 10px rgba(68,71,76,.06)}
+  #solo time{margin-top:16px;font-size:9px;letter-spacing:.2em;color:var(--faint)}
   .sheet{position:relative;width:var(--sw);aspect-ratio:3/4;background:#f7f8f6;
     box-shadow:0 0 0 .5px rgba(68,71,76,.10), 0 1px 3px rgba(68,71,76,.04);
     opacity:0;transform:translateY(10px);transition:opacity 1.2s ease, transform 1.2s ease}
