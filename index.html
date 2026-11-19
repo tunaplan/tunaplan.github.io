@@ -39,7 +39,15 @@
   .label{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
     border-top:1px solid var(--line);font-size:10px;font-weight:300;letter-spacing:.16em;color:var(--ink);
     font-variant-numeric:tabular-nums;background:var(--paper)}
-  .label time{color:var(--faint)}
+  .label time{color:var(--faint);flex:none}
+  .label span{flex:none;margin-right:16px}
+  .label em{flex:1;min-width:0;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.06em}
+  /* 닫힌 폭의 머리: 폭 번호 · 이름 · 기간 · 장 수 */
+  .roll{display:flex;align-items:baseline;gap:16px;padding:34px 18px 12px;border-top:1px solid rgba(68,71,76,.55);
+    font-size:11px;font-weight:300;letter-spacing:.14em;color:var(--ink);font-variant-numeric:tabular-nums;scroll-snap-align:start}
+  .roll em{flex:1;font-style:normal;letter-spacing:.06em;font-size:13px}
+  .roll time{color:var(--faint);font-size:10px}
+  .roll.current{padding-top:22px;border-top:0}
   .sheet{position:relative;width:100%;aspect-ratio:3/4;background:#f7f8f6;overflow:hidden}
   /* 기록 줄과 장이 맞닿은 선: 멀리선 그냥 선, 가까이 보면 남색 실의 홈질 */
   .sheet::before,.next::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;z-index:2;
@@ -68,7 +76,7 @@
   /* 한 장 놓기: 앞 장의 아래 한 줄만 보고 잇는다 */
   #compose{position:fixed;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column;
     align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s linear;
-    --pw:min(84vw, calc((100svh - 210px) * .75))}
+    --pw:min(84vw, calc((100svh - 300px) * .75))}
   body.composing #compose{opacity:1;pointer-events:auto}
   .cstrip{display:block;width:var(--pw);aspect-ratio:750/120;object-fit:cover;opacity:.9}
   .cpaper{position:relative;width:var(--pw);aspect-ratio:3/4;background:#f7f8f6;
@@ -80,6 +88,18 @@
   .ctools button,.ctools label{background:none;border:0;font:inherit;font-weight:300;color:inherit;letter-spacing:inherit;padding:6px 2px;cursor:pointer}
   .ctools .cplace{color:var(--ink)}
   .ctools input{display:none}
+  .cfields{width:var(--pw);margin-top:12px}
+  .crow{display:flex;align-items:baseline;gap:14px;height:30px;border-bottom:1px solid rgba(68,71,76,.18);
+    font-size:11px;font-weight:300;letter-spacing:.14em;color:var(--faint);font-variant-numeric:tabular-nums}
+  .crow input{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:12px;letter-spacing:.06em;
+    color:var(--ink);padding:0;user-select:text;-webkit-user-select:text}
+  .crow input::placeholder{color:rgba(162,167,172,.75)}
+  .cno{color:var(--ink)}
+  .csize b{font-weight:300;color:var(--faint);padding:0 4px;cursor:pointer}
+  .csize b.on{color:var(--ink);border-bottom:1px solid rgb(40,62,104)}
+  .crow.csize,.crow.croll{display:none}
+  #compose.first .csize,#compose.final .croll{display:flex}
+  .cconsent{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 12px);font-size:9px;letter-spacing:.12em;color:rgba(162,167,172,.8)}
   .cnote{height:16px;margin-top:8px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
   .cclose{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;background:none;border:0;
     font:inherit;font-size:22px;font-weight:200;color:var(--faint);padding:8px;cursor:pointer}
@@ -121,12 +141,18 @@
   <button class="cclose" aria-label="닫기">×</button>
   <img class="cstrip" alt="">
   <div class="cpaper"><img class="cphoto" alt="" style="display:none"><canvas class="cink"></canvas></div>
+  <div class="cfields">
+    <div class="crow"><span class="cno"></span><input class="ctitle" maxlength="40" placeholder="제목 (없어도 돼요)" autocomplete="off"></div>
+    <div class="crow csize"><span>장 수</span><b data-n="4">4</b><b data-n="6" class="on">6</b><b data-n="8">8</b><b data-n="10">10</b></div>
+    <div class="crow croll"><span>폭</span><input class="crolltitle" maxlength="40" placeholder="이 폭의 이름 — 마지막 장이에요" autocomplete="off"></div>
+  </div>
   <div class="ctools">
     <label>사진<input type="file" accept="image/*"></label>
     <button class="cclear">지우기</button>
     <button class="cplace">놓기</button>
   </div>
   <div class="cnote"></div>
+  <div class="cconsent">놓은 장은 기록되고, 엮일 수 있어요</div>
 </div>
 
 <div id="lock">
