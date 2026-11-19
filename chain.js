@@ -29,6 +29,8 @@
   // board = { open: {id,size,sheets:[…]} | null, closed: [{id,size,title,from,to,sheets}] }
   let board = {open:null, closed:[]}, rows = [], size = null, lastId = null, lifting = new Set();
 
+  const {edgeOf, cellOf, edgeURL} = window.NN_EDGE;
+  const formOf = r => (r && r.form) || 'line';
   const pad2 = n => String(n).padStart(2,'0');
   const rno = id => pad2(Math.max(0, id - 1));   // 폭 번호는 00부터: 첫 폭(두 사람이 만드는 폭 00)
   const esc = t => String(t||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -46,6 +48,7 @@
     const it = document.createElement('section'); it.className = 'item';
     it.innerHTML = `<div class="label"><span>${pad2(row.n)}</span><em>${esc(row.title)}</em><time>${esc(row.at)}</time></div>`;
     const s = document.createElement('div'); s.className = 'sheet' + (folded ? ' last' : '');
+    s.dataset.n = pad2(row.n); s.dataset.t = row.title || ''; s.dataset.at = row.at || '';
     const im = new Image(); im.decoding = 'async'; im.src = row.img; im.alt = '';
     im.className = folded ? 'strip' : 'pic';
     s.appendChild(im);
@@ -57,6 +60,40 @@
     it.appendChild(s);
     return it;
   }
+  // 두 줄 굽이: 맞닿은 이음매만 남색 홈질, 맞닿지 않은 곳은 그냥 선. 기록은 아래에 캡션 목록으로.
+  function snake(list, form, o = {}){
+    const g = document.createElement('div'); g.className = 'grid';
+    list.forEach((row, i) => {
+      const n = row.n, c = cellOf(n), folded = o.foldLast && i === list.length-1;
+      const cell = document.createElement('div'); cell.className = 'cell';
+      cell.style.gridRow = c.r + 1; cell.style.gridColumn = c.col + 1;
+      if(n > 1){ const e = edgeOf(n-1, form); cell.classList.add(e === 'bottom' ? 'j-top' : e === 'right' ? 'j-left' : 'j-right'); }
+      const s = document.createElement('div'); s.className = 'sheet' + (folded ? ' last' : '');
+      s.dataset.n = pad2(n); s.dataset.t = row.title || ''; s.dataset.at = row.at || '';
+      const e = edgeOf(n, form), ec = e === 'bottom' ? '' : (e === 'right' ? ' er' : ' el');
+      const im = new Image(); im.decoding = 'async'; im.src = row.img; im.alt = '';
+      im.className = folded ? 'strip' + ec : 'pic';
+      s.appendChild(im);
+      const foldEl = () => { const f = document.createElement('div'); f.className = 'fold' + (e === 'right' ? ' fr' : e === 'left' ? ' fl' : ''); return f; };
+      if(folded) s.appendChild(foldEl());
+      if(lifting.has(row.id)){ const f = foldEl(); s.appendChild(f); setTimeout(()=>f.classList.add('lift'), 350); setTimeout(()=>f.remove(), 900); }
+      cell.appendChild(s); g.appendChild(cell);
+    });
+    if(o.slot){
+      const n = list.length + 1, c = cellOf(n);
+      const cell = document.createElement('div'); cell.className = 'cell';
+      cell.style.gridRow = c.r + 1; cell.style.gridColumn = c.col + 1;
+      if(n > 1){ const e = edgeOf(n-1, form); cell.classList.add(e === 'bottom' ? 'j-top' : e === 'right' ? 'j-left' : 'j-right'); }
+      cell.appendChild(o.slot); g.appendChild(cell);
+    }
+    const wrap = document.createElement('div'); wrap.className = 'snake'; wrap.appendChild(g);
+    const caps = document.createElement('ol'); caps.className = 'caps';
+    const pos = n => { const c = cellOf(n); return `grid-row:${c.r+1};grid-column:${c.col+1}`; };   // 이름표도 장과 같은 자리 순서로
+    caps.innerHTML = list.map(r => `<li style="${pos(r.n)}"><span>${pad2(r.n)}</span><em>${esc(r.title)}</em><time>${esc((r.at||'').slice(5))}</time></li>`).join('')
+      + (o.slot ? `<li class="nx" style="${pos(list.length+1)}"><span>${pad2(list.length+1)}</span><em></em><time class="heldt"></time></li>` : '');
+    wrap.appendChild(caps);
+    return wrap;
+  }
   function render(){
     chain.innerHTML = '';
     navs.forEach(a => a.classList.toggle('on', a.dataset.v === view));
@@ -67,6 +104,8 @@
     const head = document.createElement('div'); head.className = 'roll current';
     head.innerHTML = `<span>폭 ${board.open ? rno(board.open.id) : rno(no)}</span><em></em><time>${size ? pad2(rows.length)+' / '+pad2(size) : ''}</time>`;
     chain.appendChild(head);
+    const form = board.open ? formOf(board.open) : 'snake';
+    if(form === 'snake') return renderSnakeMake(form);
     rows.forEach((row, i) => chain.appendChild(sheetItem(row, i === rows.length-1)));
     cnt.textContent = size ? `${pad2(rows.length)} / ${pad2(size)}` : '';
     const it = document.createElement('section'); it.className = 'item';
@@ -87,6 +126,24 @@
     });
     it.appendChild(next); chain.appendChild(it);
   }
+  function nextSlot(){
+    const next = document.createElement('div'); next.className = 'next';
+    const busy = heldUntil && heldUntil > Date.now() && !token;
+    if(canPlace || busy){
+      next.innerHTML = `<svg viewBox="0 0 40 170" class="${busy ? 'busy' : ''}"><path d="M20 0 Q12 70 26 120" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
+        `<line x1="22" y1="112" x2="29" y2="150" stroke="#a9aeb3" stroke-width="1.3" stroke-linecap="round"/></svg>`;
+    }
+    next.addEventListener('click', ()=>{
+      if(canPlace && !busy) return openCompose();
+      if(DEMO){ const ls = chain.querySelector('.sheet.last'); if(!ls) return;
+        ls.querySelector('img').className = 'pic'; const f = ls.querySelector('.fold'); f && f.classList.add('lift'); }
+    });
+    return next;
+  }
+  function renderSnakeMake(form){
+    const full = size && rows.length >= size;
+    chain.appendChild(snake(rows, form, {foldLast:true, slot: full ? null : nextSlot()}));
+  }
   // 만들어진 것: 닫힌 폭들 — 누구나 본다. 모두 펼쳐진 채로.
   function renderMade(){
     if(!board.closed.length){ chain.innerHTML = '<div class="empty">아직 닫힌 폭이 없어요</div>'; return; }
@@ -95,7 +152,8 @@
       h.innerHTML = `<span>폭 ${rno(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="bk">엮음</span>`;
       h.addEventListener('click', ()=>openBook(r));
       chain.appendChild(h);
-      (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
+      if(formOf(r) === 'snake') chain.appendChild(snake(r.sheets||[], 'snake'));
+      else (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
     });
   }
   // 책처럼: 판지 표지들이 꽂힌 책장. 누르면 책으로.
@@ -175,7 +233,7 @@
       `<div class="t deboss" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
        <div class="t deboss cv-name">${esc(r.title) || '&nbsp;'}</div>
        <div class="t deboss" style="right:calc(var(--mm)*12);bottom:calc(var(--mm)*12)">폭 ${no}</div>`,
-      `<div class="stack">${ss.map(x=>`<div><img src="${x.img}" alt=""></div>`).join('')}</div>
+      `<div class="stack">${ss.map((x,i)=>`<div><img data-src="${i}" alt=""></div>`).join('')}</div>
        <div class="t f" style="left:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">${period} · ${r.size}장</div>
        <div class="t f" style="right:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">tu.:na.</div>`, 'cover');
     // 한 장 = 엽서 한 장: 앞 = 그린 것 / 뒤 = 본 것 + 기록
@@ -184,7 +242,7 @@
       html += card(
         `<div class="pic"><img src="${x.img}" alt=""></div>
          <div class="t cap"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><span class="f">${esc(x.at)}</span></div>`,
-        `${prev ? `<div class="seen"><img src="${prev.img}" alt=""></div>` : `<div class="seen none"></div>`}
+        `${prev ? `<div class="seen"><img data-src="${i-1}" alt=""></div>` : `<div class="seen none"></div>`}
          ${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title) ? esc(x.title)+'<br>' : ''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`);
     });
     // 판권 엽서
@@ -196,6 +254,10 @@
        <div class="t f" style="right:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">tu.:na.</div>`,
       postBack(''));
     pages.innerHTML = html; pages.scrollLeft = 0;
+    // 각자가 본 가장자리 한 줄(옆 가장자리는 눕혀서 가로 띠로)
+    const fm = formOf(r);
+    pages.querySelectorAll('img[data-src]').forEach(im => { const x = ss[+im.dataset.src];
+      edgeURL(x.strip || x.img, edgeOf(x.n, fm), !!x.strip).then(u => im.src = u); });
     book.querySelector('.pr').href = `print.html?roll=${r.id}${DEMO ? '&demo' : ''}`;
     pages.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {
       if(matchMedia('(orientation:landscape)').matches) return;
@@ -221,10 +283,9 @@
     if(document.body.classList.contains('far')) return;
     const s = e.target.closest('.sheet'); if(!s || s.classList.contains('last')) return;
     const im = s.querySelector('img.pic'); if(!im) return;
-    const lab = s.parentElement.querySelector('.label');
     solo.querySelector('img').src = im.src;
-    solo.querySelector('.meta span').textContent = lab.querySelector('span').textContent + (lab.querySelector('em').textContent ? '   ' + lab.querySelector('em').textContent : '');
-    solo.querySelector('.meta time').textContent = lab.querySelector('time').textContent;
+    solo.querySelector('.meta span').textContent = s.dataset.n + (s.dataset.t ? '   ' + s.dataset.t : '');
+    solo.querySelector('.meta time').textContent = s.dataset.at;
     document.body.classList.add('solo');
   });
   solo.addEventListener('click', ()=>document.body.classList.remove('solo'));
@@ -252,6 +313,19 @@
   let photo = null, inked = false, busy = false;
   let strokes = [], t0 = 0, stroke = null, pick = 6;     // 책을 위해: 획의 순서·좌표·시간을 그대로
   const cTitle = cp.querySelector('.ctitle'), cRoll = cp.querySelector('.crolltitle'), cNo = cp.querySelector('.cno');
+  let pickForm = 'snake';
+  cp.querySelectorAll('.cform b').forEach(b => b.addEventListener('click', ()=>{
+    cp.querySelectorAll('.cform b').forEach(x => x.classList.toggle('on', x === b)); pickForm = b.dataset.f;
+  }));
+  const curForm = () => board.open ? formOf(board.open) : pickForm;
+  function stageStrip(){                       // 앞 장의 가장자리를 맞닿는 쪽에: 아래 → 위에, 오른쪽 → 왼쪽 옆에, 왼쪽 → 오른쪽 옆에
+    const prev = rows[rows.length-1], st = cp.querySelector('.cstage');
+    st.className = 'cstage';
+    if(!prev || !board.open){ cStrip.removeAttribute('src'); cStrip.style.display = 'none'; return; }
+    const e = edgeOf(prev.n, curForm());
+    st.classList.add(e === 'bottom' ? 'from-top' : e === 'right' ? 'from-left' : 'from-right');
+    cStrip.src = prev.img; cStrip.style.display = '';
+  }
   cp.querySelectorAll('.csize b').forEach(b => b.addEventListener('click', ()=>{
     cp.querySelectorAll('.csize b').forEach(x => x.classList.toggle('on', x === b)); pick = +b.dataset.n;
   }));
@@ -277,8 +351,7 @@
       }catch(e){ token = null; return; }
     }
     note.textContent = '';
-    const prev = rows[rows.length-1];
-    if(prev){ cStrip.src = prev.img; cStrip.style.display = ''; } else { cStrip.removeAttribute('src'); cStrip.style.display = 'none'; }
+    stageStrip();
     const first = !board.open, n = rows.length + 1, total = first ? pick : size;
     cp.classList.toggle('first', first);
     cp.classList.toggle('final', !first && n === size);
@@ -369,8 +442,10 @@
       x.drawImage(photo, (W-w)/2, (H-h)/2, w, h);
     }
     x.drawImage(ink, 0, 0, W, H);
-    const sc = document.createElement('canvas'); sc.width = W; sc.height = 120;
-    sc.getContext('2d').drawImage(c, 0, H-120, W, 120, 0, 0, W, 120);
+    // 다음 사람이 볼 가장자리: 아래 120px, 또는 옆 90px
+    const e = edgeOf(rows.length + 1, curForm()), sc = document.createElement('canvas');
+    if(e === 'bottom'){ sc.width = W; sc.height = 120; sc.getContext('2d').drawImage(c, 0, H-120, W, 120, 0, 0, W, 120); }
+    else { sc.width = 90; sc.height = H; sc.getContext('2d').drawImage(c, e === 'right' ? W-90 : 0, 0, 90, H, 0, 0, 90, H); }
     return {img: c.toDataURL('image/jpeg', q), strip: sc.toDataURL('image/jpeg', .8)};
   }
 
@@ -381,10 +456,11 @@
     do { out = compose(q); q -= .1; } while(out.img.length > 680000 && q > .3);
     try{
       const prev = lastId;
-      const res = await rpc('place3', {
+      const res = await rpc('place4', {
         k:key, ptoken:token, after_id:lastId, pimg:out.img, pstrip:out.strip,
         ptitle: cTitle.value.trim() || null,
         psize: board.open ? null : pick,
+        pform: board.open ? null : pickForm,
         proll: cp.classList.contains('final') ? (cRoll.value.trim() || null) : null,
         pstrokes: strokes.length ? strokes : null,
         pphoto: original()
@@ -403,7 +479,7 @@
         note.textContent = '누군가 잇는 중이에요';
       } else if(m.includes('moved')){
         note.textContent = '그새 누군가 이어 놓았어요';
-        await load(); openStripOnly();
+        await load(); stageStrip();
       } else if(m.includes('no key')){
         note.textContent = '이 링크로는 놓을 수 없어요';
         try{ localStorage.removeItem('nn-key'); }catch(_){}

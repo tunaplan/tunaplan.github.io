@@ -22,7 +22,7 @@
   .cap{left:7mm;right:7mm;bottom:8mm;display:flex;gap:1.4em}
   .cap em{flex:1;font-style:normal;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .seen{position:absolute;left:7mm;top:14mm;width:86mm;height:13.76mm;overflow:hidden;outline:.1mm solid #ddd}
-  .seen img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+  .seen img{width:100%;height:100%;object-fit:cover}
   .seen.none{outline:0;border-top:.15mm dashed #bbb;height:0}
   .rule{position:absolute;left:50mm;top:40mm;bottom:14mm;border-left:.15mm solid #bbb}
   .addr{position:absolute;left:54mm;right:7mm;border-top:.15mm solid #bbb}
@@ -31,7 +31,7 @@
   .rec b{display:block;font-weight:300;font-size:4.2mm;letter-spacing:.06em;margin-bottom:1.5mm}
   .stack{position:absolute;left:7mm;right:7mm;top:14mm;bottom:20mm;display:flex;flex-direction:column;gap:1.2mm}
   .stack div{flex:0 1 13.76mm;min-height:0;overflow:hidden}
-  .stack img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+  .stack img{width:100%;height:100%;object-fit:cover}
   /* 구멍 자리(지름 6mm 펀치, 중심 7mm·7mm): 앞은 왼쪽 위, 뒤는 오른쪽 위 */
   .punch{position:absolute;top:4mm;left:4mm;width:6mm;height:6mm;border-radius:50%;border:.1mm dashed #bbb}
   .back .punch{left:auto;right:4mm}
@@ -46,6 +46,7 @@
 <body>
 <div class="note" id="note"></div>
 <div id="out"></div>
+<script src="edge.js"></script>
 <script src="demo.js"></script>
 <script>
 (async function(){
@@ -65,11 +66,11 @@
   // 엽서 목록: [앞, 뒤]
   const cards=[[
     `<div class="t ghost" style="left:12mm;top:14mm">n.n.</div><div class="t ghost name">${esc(r.title)||''}</div><div class="t ghost" style="right:12mm;bottom:12mm">폭 ${no}</div>`,
-    `<div class="stack">${ss.map(x=>`<div><img src="${x.img}"></div>`).join('')}</div><div class="t f" style="left:7mm;bottom:8mm">${period} · ${r.size}장</div><div class="t f" style="right:7mm;bottom:8mm">tu.:na.</div>`
+    `<div class="stack">${ss.map((x,i)=>`<div><img data-src="${i}"></div>`).join('')}</div><div class="t f" style="left:7mm;bottom:8mm">${period} · ${r.size}장</div><div class="t f" style="right:7mm;bottom:8mm">tu.:na.</div>`
   ]];
   ss.forEach((x,i)=>{ const p=ss[i-1]; cards.push([
     `<div class="pic"><img src="${x.img}"></div><div class="t cap"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><span class="f">${esc(x.at)}</span></div>`,
-    `${p?`<div class="seen"><img src="${p.img}"></div>`:`<div class="seen none"></div>`}${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title)?esc(x.title)+'<br>':''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`
+    `${p?`<div class="seen"><img data-src="${i-1}"></div>`:`<div class="seen none"></div>`}${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title)?esc(x.title)+'<br>':''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`
   ]); });
   cards.push([
     `<div class="t" style="left:12mm;right:12mm;bottom:22mm;line-height:2">폭 ${no}<br>${esc(r.title)||'<span class="f">이름 없음</span>'}<br><span class="f">${period}</span><br>${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div><div class="t f" style="left:12mm;top:14mm">n.n.</div><div class="t f" style="right:7mm;bottom:8mm">tu.:na.</div>`,
@@ -89,6 +90,10 @@
     html+=`<div class="sheet">${f}${marks()}</div><div class="sheet">${b}${marks()}</div>`;
   }
   document.getElementById('out').innerHTML=html;
+  // 각자가 본 가장자리 한 줄(옆 가장자리는 눕혀 가로 띠로)
+  const E=window.NN_EDGE, fm=r.form||'line';
+  await Promise.all([...document.querySelectorAll('img[data-src]')].map(async im=>{ const x=ss[+im.dataset.src];
+    im.src=await E.edgeURL(x.strip||x.img, E.edgeOf(x.n,fm), !!x.strip); }));
   document.getElementById('note').innerHTML=
     `폭 ${no} ${esc(r.title)} — 엽서 ${cards.length}장 · A4 ${Math.ceil(cards.length/4)*2}쪽<br>
      1. 흑백, A4, <b>양면(긴 변 넘김)</b>, 배율 100%로 인쇄. 두꺼운 종이(200g 안팎)면 좋아요. 표지는 회색 종이에.<br>

@@ -108,11 +108,54 @@ window.NN_DEMO = (function(){
     line([[196,200],[226,200],[226,232],[196,232],[196,200]],1) +
     line([[70,300],[118,296]],.9) + line([[70,312],[104,309]],.9)
   );
-  const X = [s1, s2, s3, s4, e5, e6, e7, e8, e9, e10];
-  const XT = ['싹', '', '멀어지는 길', '눈덩이 아래', '', '전깃줄', '그 집', '', '오후 세 시', ''];
+  /* 두 줄 굽이 예시: 앞 장이 넘겨준 가장자리의 선 끝에서 시작해, 다음 사람이 볼 가장자리로 선을 넘긴다.
+     (누가 그려도 이어지게 — 서툰 선 몇 가닥, 사진 세 장) */
+  const E = window.NN_EDGE, r = (a,b) => a + (b-a)*rn();
+  const opp = {bottom:'top', right:'left', left:'right'};
+  const at = (side, t) => side === 'top' ? [t*300, 0] : side === 'bottom' ? [t*300, 400] : side === 'left' ? [0, t*400] : [300, t*400];
+  let pass = [.35, .62];                 // 넘겨받은 선 끝의 자리(0~1)
+  const motif = [
+    () => line([[150,140],[136,128],[140,112],[156,112],[160,128],[150,140]],1.5),                  // 씨앗
+    () => line([[90,220],[120,200],[160,210],[190,240],[170,270],[120,268],[90,220]],1.6),         // 돌
+    () => '',
+    () => line([[120,150],[150,120],[180,150],[180,200],[120,200],[120,150]],1.6) + line([[140,200],[140,170],[160,170],[160,200]],1.2), // 작은 집
+    () => line([[80,260],[220,260]],1.2) + line([[100,250],[100,230],[120,230]],1.2),             // 선반
+    () => '',
+    () => line([[150,170],[150,240]],1.6) + line([[150,190],[128,176]],1.3) + line([[150,205],[174,190]],1.3), // 싹
+    () => line([[100,120],[200,120],[200,200],[100,200],[100,120]],1.4) + line([[100,120],[150,165],[200,120]],1.2), // 봉투
+    () => '',
+    () => line([[130,230],[150,200],[170,230],[150,260],[130,230]],1.4)                             // 잎
+  ];
+  const isPhoto = n => n === 3 || n === 6 || n === 9;
+  const X = [];
+  for(let n=1; n<=10; n++){
+    const inSide = n === 1 ? null : opp[E.edgeOf(n-1, 'snake')];
+    const outSide = n === 10 ? null : E.edgeOf(n, 'snake');
+    const outs = [r(.25,.45), r(.55,.78)];
+    if(isPhoto(n)){
+      // 사진: 들어온 두 줄이 어둑한 길이 되고, 나가는 쪽 가장자리에 두 줄의 그림자를 남긴다
+      const [ax,ay] = inSide ? at(inSide, pass[0]) : [120, 0], [bx,by] = inSide ? at(inSide, pass[1]) : [190, 0];
+      const [cx,cy] = outSide ? at(outSide, outs[0]) : [60, 400], [dx,dy] = outSide ? at(outSide, outs[1]) : [250, 400];
+      X.push(photo(`<rect width="300" height="400" fill="#8b9295"/>
+        <polygon points="${ax},${ay} ${bx},${by} ${dx},${dy} ${cx},${cy}" fill="#d3d7d9"/>
+        <circle cx="${r(60,240)}" cy="${r(80,320)}" r="${r(30,60)}" fill="#6f7679" opacity=".5"/>`, '#8b9295'));
+    } else {
+      let body = '';
+      [0,1].forEach(k => {
+        const p0 = inSide ? at(inSide, pass[k]) : [r(80,220), r(40,120)];
+        const p3 = outSide ? at(outSide, outs[k]) : [r(80,220), r(300,370)];
+        const m1 = [r(70,230), r(110,190)], m2 = [r(70,230), r(210,300)];
+        body += line([p0, m1, m2, p3], 1.8);
+      });
+      body += motif[n-1]();
+      X.push(svg(body));
+    }
+    pass = outs;
+  }
+  const XT = ['씨앗', '', '두 갈래', '돌', '', '창 밖', '작은 집', '', '오후 세 시', '잎'];
   const XA = ['10.02 09:14','10.03 23:40','10.05 17:02','10.06 07:55','10.08 13:21','10.10 18:47','10.11 22:03','10.14 08:30','10.15 15:00','10.17 21:36']
     .map(t => '2026.' + t);
-  const example = {id:1, size:10, title:'창문 쪽으로', from:'2026.10.02', to:'2026.10.17', example:true,
+  const example = {id:1, size:10, form:'snake', title:'창문 쪽으로', from:'2026.10.02', to:'2026.10.17', example:true,
     sheets: X.map((img,i) => ({id:900+i, n:i+1, title:XT[i], at:XA[i], img}))};
   window.NN_EXAMPLE = example;     // 진짜 폭이 하나도 없을 때 아카이브에 보여 줄 예시 (지우려면 이 줄과 chain.js의 EXAMPLE 사용부를 뺀다)
 
@@ -120,7 +163,7 @@ window.NN_DEMO = (function(){
   const T = ['싹', '', '멀어지는 길', '', '나뭇가지 위'];
   const A = ['2026.11.02 09:14', '2026.11.05 23:40', '2026.11.09 17:02', '2026.11.12 07:55', '2026.11.16 13:21'];
   return {
-    open: {id:2, size:6, sheets: imgs.map((img,i) => ({id:10+i, n:i+1, title:T[i], at:A[i], img}))},
+    open: {id:2, size:6, form:'line', sheets: imgs.map((img,i) => ({id:10+i, n:i+1, title:T[i], at:A[i], img}))},
     closed: [example]
   };
 })();
