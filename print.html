@@ -29,8 +29,8 @@
   .stamp{position:absolute;right:7mm;top:40mm;width:16mm;height:20mm;border:.15mm dashed #aaa}
   .rec{left:7mm;top:40mm;width:38mm}
   .rec b{display:block;font-weight:300;font-size:4.2mm;letter-spacing:.06em;margin-bottom:1.5mm}
-  .stack{position:absolute;left:7mm;right:7mm;top:14mm;display:flex;flex-direction:column;gap:1.4mm}
-  .stack div{height:13.76mm;overflow:hidden}
+  .stack{position:absolute;left:7mm;right:7mm;top:14mm;bottom:20mm;display:flex;flex-direction:column;gap:1.2mm}
+  .stack div{flex:0 1 13.76mm;min-height:0;overflow:hidden}
   .stack img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
   /* 구멍 자리(지름 6mm 펀치, 중심 7mm·7mm): 앞은 왼쪽 위, 뒤는 오른쪽 위 */
   .punch{position:absolute;top:4mm;left:4mm;width:6mm;height:6mm;border-radius:50%;border:.1mm dashed #bbb}
