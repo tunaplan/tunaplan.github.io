@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>n.n. — 인쇄</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300&display=swap" rel="stylesheet">
+<style>
+  /* 혼자 만드는 엽서 책: A4 한 장에 엽서(100×148mm) 넷. 흑백 양면 인쇄 → 재단선 따라 자르기 → 구멍 → 링.
+     A4(210×297)에 100×148 넷이 2×2로 꼭 들어간다(가로 여백 5mm, 세로 0.5mm). */
+  @page{size:A4;margin:0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#ddd;font-family:"Noto Serif KR",serif;font-weight:300;color:#222}
+  .sheet{position:relative;width:210mm;height:297mm;margin:10mm auto;background:#fff;overflow:hidden;page-break-after:always;break-after:page}
+  @media print{ html,body{background:#fff} .sheet{margin:0} .note{display:none} }
+  .cell{position:absolute;width:100mm;height:148mm}
+  .cell img{filter:grayscale(1)}
+  .t{position:absolute;font-size:2.6mm;letter-spacing:.14em;line-height:1.5}
+  .f{color:#888}
+  .pic{position:absolute;left:7mm;top:14mm;width:86mm;height:114.67mm;overflow:hidden;outline:.1mm solid #ccc}
+  .pic img{width:100%;height:100%;object-fit:cover}
+  .cap{left:7mm;right:7mm;bottom:8mm;display:flex;gap:1.4em}
+  .cap em{flex:1;font-style:normal;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seen{position:absolute;left:7mm;top:14mm;width:86mm;height:13.76mm;overflow:hidden;outline:.1mm solid #ddd}
+  .seen img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+  .seen.none{outline:0;border-top:.15mm dashed #bbb;height:0}
+  .rule{position:absolute;left:50mm;top:40mm;bottom:14mm;border-left:.15mm solid #bbb}
+  .addr{position:absolute;left:54mm;right:7mm;border-top:.15mm solid #bbb}
+  .stamp{position:absolute;right:7mm;top:40mm;width:16mm;height:20mm;border:.15mm dashed #aaa}
+  .rec{left:7mm;top:40mm;width:38mm}
+  .rec b{display:block;font-weight:300;font-size:4.2mm;letter-spacing:.06em;margin-bottom:1.5mm}
+  .stack{position:absolute;left:7mm;right:7mm;top:14mm;display:flex;flex-direction:column;gap:1.4mm}
+  .stack div{height:13.76mm;overflow:hidden}
+  .stack img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+  /* 구멍 자리(지름 6mm 펀치, 중심 7mm·7mm): 앞은 왼쪽 위, 뒤는 오른쪽 위 */
+  .punch{position:absolute;top:4mm;left:4mm;width:6mm;height:6mm;border-radius:50%;border:.1mm dashed #bbb}
+  .back .punch{left:auto;right:4mm}
+  /* 표지: 회색 종이에 찍는다. 이름은 아주 옅게 — 판지에 철필로 눌러 쓸 밑그림이 되기도 한다 */
+  .ghost{color:#c9c9c9}
+  .name{left:12mm;right:12mm;bottom:22mm;font-size:5.6mm;font-weight:200;letter-spacing:.04em;line-height:1.4}
+  /* 재단 표시 */
+  .crop{position:absolute;background:#000}
+  .note{width:210mm;margin:8mm auto 0;font-size:3mm;line-height:1.9;color:#555;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="note" id="note"></div>
+<div id="out"></div>
+<script src="demo.js"></script>
+<script>
+(async function(){
+  const SB='https://esxwkzsvxlacymduuncw.supabase.co', PK='sb_publishable_nP5mWJBUMS1bJ_sSWAIlow_rBq3FKGy';
+  const q=new URLSearchParams(location.search), id=+q.get('roll');
+  const pad2=n=>String(n).padStart(2,'0');
+  const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let board;
+  if(q.has('demo')) board=window.NN_DEMO;
+  else { const r=await fetch(`${SB}/rest/v1/rpc/board`,{method:'POST',headers:{apikey:PK,'Content-Type':'application/json'},body:'{}'}); board=await r.json(); }
+  const r=(board.closed||[]).find(x=>x.id===id) || (board.closed||[])[0];
+  if(!r){ document.getElementById('note').textContent='닫힌 폭이 아직 없어요.'; return; }
+  const ss=r.sheets||[], no=pad2(r.id), period=`${esc(r.from)} — ${esc(r.to)}`;
+  const KOR=['','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열'];
+  const postBack=rec=>`<div class="rule"></div>${rec}<i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:${78+i*12}mm"></i>`).join('')}`;
+  // 엽서 목록: [앞, 뒤]
+  const cards=[[
+    `<div class="t ghost" style="left:12mm;top:14mm">n.n.</div><div class="t ghost name">${esc(r.title)||''}</div><div class="t ghost" style="right:12mm;bottom:12mm">폭 ${no}</div>`,
+    `<div class="stack">${ss.map(x=>`<div><img src="${x.img}"></div>`).join('')}</div><div class="t f" style="left:7mm;bottom:8mm">${period} · ${r.size}장</div><div class="t f" style="right:7mm;bottom:8mm">tu.:na.</div>`
+  ]];
+  ss.forEach((x,i)=>{ const p=ss[i-1]; cards.push([
+    `<div class="pic"><img src="${x.img}"></div><div class="t cap"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><span class="f">${esc(x.at)}</span></div>`,
+    `${p?`<div class="seen"><img src="${p.img}"></div>`:`<div class="seen none"></div>`}${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title)?esc(x.title)+'<br>':''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`
+  ]); });
+  cards.push([
+    `<div class="t" style="left:12mm;right:12mm;bottom:22mm;line-height:2">폭 ${no}<br>${esc(r.title)||'<span class="f">이름 없음</span>'}<br><span class="f">${period}</span><br>${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div><div class="t f" style="left:12mm;top:14mm">n.n.</div><div class="t f" style="right:7mm;bottom:8mm">tu.:na.</div>`,
+    postBack('')
+  ]);
+  // A4 한 장에 넷. 앞면 장 다음에 뒷면 장(긴 변 기준 양면 인쇄: 뒷면은 좌우가 바뀐 자리)
+  const X=[5,105], Y=[.5,148.5];
+  const marks=()=>{ let h=''; [5,105,205].forEach(x=>{ h+=`<i class="crop" style="left:${x-.05}mm;top:0;width:.1mm;height:.5mm"></i><i class="crop" style="left:${x-.05}mm;bottom:0;width:.1mm;height:.5mm"></i>`; });
+    [0.5,148.5,296.5].forEach(y=>{ h+=`<i class="crop" style="top:${y-.05}mm;left:0;height:.1mm;width:4mm"></i><i class="crop" style="top:${y-.05}mm;right:0;height:.1mm;width:4mm"></i>`; }); return h; };
+  let html='';
+  for(let i=0;i<cards.length;i+=4){
+    const g=cards.slice(i,i+4);
+    let f='', b='';
+    g.forEach((c,k)=>{ const col=k%2, row=k>>1;
+      f+=`<div class="cell front" style="left:${X[col]}mm;top:${Y[row]}mm">${c[0]}<i class="punch"></i></div>`;
+      b+=`<div class="cell back" style="left:${X[1-col]}mm;top:${Y[row]}mm">${c[1]}<i class="punch"></i></div>`; });
+    html+=`<div class="sheet">${f}${marks()}</div><div class="sheet">${b}${marks()}</div>`;
+  }
+  document.getElementById('out').innerHTML=html;
+  document.getElementById('note').innerHTML=
+    `폭 ${no} ${esc(r.title)} — 엽서 ${cards.length}장 · A4 ${Math.ceil(cards.length/4)*2}쪽<br>
+     1. 흑백, A4, <b>양면(긴 변 넘김)</b>, 배율 100%로 인쇄. 두꺼운 종이(200g 안팎)면 좋아요. 표지는 회색 종이에.<br>
+     2. 가장자리의 짧은 재단 표시를 이어 칼로 잘라요(한 장에 넷).<br>
+     3. 점선 동그라미 자리에 구멍(1구 펀치). 은색 링(지름 25mm 안팎)에 끼우고, 남색 실을 링에 두 번 감아 묶어요.<br>
+     4. 표지 이름은 옅게 찍혀 있어요 — 그대로 두거나, 다 쓴 볼펜·철필로 그 위를 눌러 써도 좋아요.`;
+})();
+</script>
+</body>
+</html>

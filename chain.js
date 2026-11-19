@@ -112,25 +112,68 @@
   /* 책: 표지 → (본 것 · 그린 것) × 장 수 → 판권. 엽서 크기, 흑백, 한 쪽씩 옆으로 */
   const book = document.getElementById('book'), pages = book.querySelector('.pages'), pn = book.querySelector('.pn');
   const KOR = ['','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열'];
+  // 링: 무광 은색 금속(=잠금 화면의 바늘) + 남색 실 매듭(=실). 구멍을 지나, 카드 뒤로 넘어가는 반쪽은 카드에 가려진다.
+  const RING = `<svg class="ring" viewBox="0 0 30 30" aria-hidden="true">
+    <defs>
+      <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c838a"/><stop offset=".35" stop-color="#eef0f1"/>
+        <stop offset=".55" stop-color="#b9bec3"/><stop offset=".8" stop-color="#f4f5f6"/><stop offset="1" stop-color="#868d94"/></linearGradient>
+      <mask id="behind"><rect width="30" height="30" fill="#fff"/><rect x="12" y="12" width="30" height="30" fill="#000"/></mask>
+      <filter id="rs" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".45"/></filter>
+    </defs>
+    <!-- 카드 뒤로 지나가는 반쪽: 카드 밖에서만 보인다 -->
+    <path d="M19.1 19.1 A11 4 45 0 0 3.6 3.6" fill="none" stroke="#5f666c" stroke-width="1.5" mask="url(#behind)" opacity=".9"/>
+    <path d="M19.1 19.1 A11 4 45 0 0 3.6 3.6" fill="none" stroke="url(#rg)" stroke-width="1.1" mask="url(#behind)"/>
+    <!-- 카드 위로 지나가는 반쪽 + 종이에 드리운 그림자 -->
+    <path d="M3.6 3.6 A11 4 45 0 0 19.1 19.1" fill="none" stroke="rgba(40,44,52,.22)" stroke-width="1.4" filter="url(#rs)" transform="translate(.5 .9)"/>
+    <path d="M3.6 3.6 A11 4 45 0 0 19.1 19.1" fill="none" stroke="#5f666c" stroke-width="1.5"/>
+    <path d="M3.6 3.6 A11 4 45 0 0 19.1 19.1" fill="none" stroke="url(#rg)" stroke-width="1.1"/>
+    <path d="M3.6 3.6 A11 4 45 0 0 19.1 19.1" fill="none" stroke="rgba(255,255,255,.7)" stroke-width=".25" transform="translate(-.25 -.2)"/>
+    <!-- 남색 실 매듭: 링에 두 번 감기고 짧은 꼬리 -->
+    <g stroke="${IND}" stroke-linecap="round" fill="none">
+      <path d="M6.6 11.2 l1.6 -1.9" stroke-width=".7"/><path d="M7.5 11.9 l1.6 -1.9" stroke-width=".7"/>
+      <path d="M8 11.6 q.6 2.4 -.6 4.6 q-.5 1 .2 2" stroke-width=".45"/>
+      <path d="M7.6 18.2 l.5 .7 M7.6 18.2 l-.3 .8" stroke-width=".2" opacity=".7"/>
+    </g>
+  </svg>`;
+  const card = (front, back, cls='') => `<div class="pg"><div class="pc ${cls}">
+      <div class="face front ${cls==='cover'?'board':''}">${front}<i class="hole"></i></div>
+      <div class="face back">${back}<i class="hole"></i></div>${RING}</div></div>`;
+  const postBack = (rec) => `<div class="pcrule"></div>${rec}
+      <i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:calc(var(--mm)*${78+i*12})"></i>`).join('')}`;
   function openBook(r){
     const ss = r.sheets || [], no = pad2(r.id);
     const period = `${esc(r.from)} — ${esc(r.to)}`;
-    let html = `<div class="pg"><div class="card cover">
-        <div class="tl">n.n.</div><div class="tr">폭 ${no}</div>
-        <div class="stack">${ss.map(x=>`<div><img src="${x.img}" alt=""></div>`).join('')}</div>
-        <div class="ttl">${esc(r.title) || '&nbsp;'}<small>${period} · ${r.size}장</small></div>
-        <div class="br">tu.:na.</div></div></div>`;
+    // 표지 엽서: 앞 = 눌러 찍은 이름 / 뒤 = 각자가 본 한 줄들
+    let html = card(
+      `<div class="t deboss" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
+       <div class="t deboss cv-name">${esc(r.title) || '&nbsp;'}</div>
+       <div class="t deboss" style="right:calc(var(--mm)*12);bottom:calc(var(--mm)*12)">폭 ${no}</div>`,
+      `<div class="stack">${ss.map(x=>`<div><img src="${x.img}" alt=""></div>`).join('')}</div>
+       <div class="t f" style="left:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">${period} · ${r.size}장</div>
+       <div class="t f" style="right:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">tu.:na.</div>`, 'cover');
+    // 한 장 = 엽서 한 장: 앞 = 그린 것 / 뒤 = 본 것 + 기록
     ss.forEach((x,i)=>{
       const prev = ss[i-1];
-      html += `<div class="pg"><div class="card seen">${prev ? `<div class="edge"><img src="${prev.img}" alt=""></div>` : ''}
-          <div class="bl">${pad2(x.n)}</div></div></div>`;
-      html += `<div class="pg"><div class="card made"><div class="pic"><img src="${x.img}" alt=""></div>
-          <div class="rec"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><time>${esc(x.at)}</time></div></div></div>`;
+      html += card(
+        `<div class="pic"><img src="${x.img}" alt=""></div>
+         <div class="t cap"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><span class="f">${esc(x.at)}</span></div>`,
+        `${prev ? `<div class="seen"><img src="${prev.img}" alt=""></div>` : `<div class="seen none"></div>`}
+         ${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title) ? esc(x.title)+'<br>' : ''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`);
     });
-    html += `<div class="pg"><div class="card colo"><div class="tl">n.n.</div>
-        <div class="txt">폭 ${no}<br>${esc(r.title) || '<span>이름 없음</span>'}<br><span>${period}</span><br>${r.size}장 · <span>이름 모를 ${KOR[r.size]||r.size}</span><br><br><span>n.n. — 비워 둔 이름</span></div>
-        <div class="br">tu.:na.</div></div></div>`;
+    // 판권 엽서
+    html += card(
+      `<div class="t" style="left:calc(var(--mm)*12);right:calc(var(--mm)*12);bottom:calc(var(--mm)*22);line-height:2">
+         폭 ${no}<br>${esc(r.title) || '<span class="f">이름 없음</span>'}<br><span class="f">${period}</span><br>
+         ${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div>
+       <div class="t f" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
+       <div class="t f" style="right:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">tu.:na.</div>`,
+      postBack(''));
     pages.innerHTML = html; pages.scrollLeft = 0;
+    book.querySelector('.pr').href = `print.html?roll=${r.id}${DEMO ? '&demo' : ''}`;
+    pages.querySelectorAll('.pc').forEach(pc => pc.addEventListener('click', e => {
+      if(matchMedia('(orientation:landscape)').matches) return;
+      e.stopPropagation(); pc.classList.toggle('flip');
+    }));
     const total = pages.children.length;
     const upd = ()=>{ pn.textContent = `${pad2(Math.round(pages.scrollLeft / innerWidth) + 1)} / ${pad2(total)}`; };
     pages.onscroll = upd; upd();
