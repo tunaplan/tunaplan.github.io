@@ -38,5 +38,17 @@ window.NN_EDGE = (function(){
     cache.set(k, p);
     return p;
   }
-  return {edgeOf, cellOf, edgeURL};
+  // 폭 전체 그림을 엽서 한 면(왼쪽 절반 38×112mm 안)에: 내 칸은 남색 점선, 아직 없거나 접힌 칸은 빈 칸
+  function whole(sheets, size, form, markId, u){
+    const snake = form === 'snake', cols = snake ? 2 : 1, rows = snake ? Math.ceil(size/2) : size;
+    let w = 38, h = w * rows * 4 / (cols * 3); if(h > 112){ h = 112; w = h * cols * 3 / (rows * 4); }
+    let cells = '';
+    for(let n = 1; n <= size; n++){
+      const p = snake ? cellOf(n) : {r: n-1, col: 0}, x = (sheets || []).find(s => s.n === n);
+      const cls = (x && x.id === markId ? 'me' : '') + (!x || x.folded ? ' empty' : '');
+      cells += `<i class="${cls}" style="grid-row:${p.r+1};grid-column:${p.col+1}">${x && !x.folded ? `<img src="${x.img}" alt="">` : ''}</i>`;
+    }
+    return `<div class="whole" style="width:calc(${u} * ${w.toFixed(2)});height:calc(${u} * ${h.toFixed(2)});grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">${cells}</div>`;
+  }
+  return {edgeOf, cellOf, edgeURL, whole};
 })();

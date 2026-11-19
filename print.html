@@ -24,10 +24,18 @@
   .seen{position:absolute;left:7mm;top:14mm;width:86mm;height:13.76mm;overflow:hidden;outline:.1mm solid #ddd}
   .seen img{width:100%;height:100%;object-fit:cover}
   .seen.none{outline:0;border-top:.15mm dashed #bbb;height:0}
-  .rule{position:absolute;left:50mm;top:40mm;bottom:14mm;border-left:.15mm solid #bbb}
+  .rule{position:absolute;left:50mm;top:14mm;bottom:14mm;border-left:.15mm solid #bbb}
   .addr{position:absolute;left:54mm;right:7mm;border-top:.15mm solid #bbb}
-  .stamp{position:absolute;right:7mm;top:40mm;width:16mm;height:20mm;border:.15mm dashed #aaa}
-  .rec{left:7mm;top:40mm;width:38mm}
+  .stamp{position:absolute;right:7mm;top:14mm;width:16mm;height:20mm;border:.15mm dashed #aaa}
+  .rec{left:54mm;top:44mm;width:38mm}
+  .rec b small{font-size:.45em;color:#888}
+  .cell .pms{position:absolute;right:14mm;top:11mm;display:flex;gap:.5mm;z-index:2}.cell .pms svg{width:15mm;height:15mm}
+  .to2{left:54mm;top:92mm}
+  .whole{position:absolute;left:7mm;top:14mm;display:grid;gap:.5mm}
+  .whole i{position:relative;display:block;overflow:hidden;outline:.1mm solid #ccc}
+  .whole i img{width:100%;height:100%;object-fit:cover}
+  .whole i.empty{outline:.1mm dashed #bbb}
+  .whole i.me::after{content:"";position:absolute;inset:0;border:.25mm dashed #333}
   .rec b{display:block;font-weight:300;font-size:4.2mm;letter-spacing:.06em;margin-bottom:1.5mm}
   .stack{position:absolute;left:7mm;right:7mm;top:14mm;bottom:20mm;display:flex;flex-direction:column;gap:1.2mm}
   .stack div{flex:0 1 13.76mm;min-height:0;overflow:hidden}
@@ -65,10 +73,10 @@
     if(!d){ document.getElementById('note').textContent='엽서 정보가 없어요.'; return; }
     const G=window.NN_GIFT;
     const f=`<div class="pic"><img src="${d.img}"></div><div class="t cap"><span>폭 ${d.rollNo} · ${pad2(d.n)}/${pad2(d.size)}</span><em>${esc(d.title)}</em><span class="f">${esc(d.at)}</span></div>`;
-    const b=`${d.seen?`<div class="seen"><img src="${d.seen}"></div>`:`<div class="seen none"></div>`}<div class="rule"></div>
+    const b=`${d.whole?window.NN_EDGE.whole(d.whole.sheets,d.whole.size,d.whole.form,d.id,'1mm'):''}<div class="rule"></div>
       <div class="t rec"><b>${pad2(d.n)}/${pad2(d.size)}</b>${esc(d.title)?esc(d.title)+'<br>':''}<span class="f">폭 ${d.rollNo} · n.n.</span></div>
-      <div class="pms">${G.postmark('보냄',d.at,-8)}${d.got?G.postmark('받음',d.got,11):'<i class="stamp" style="position:static"></i>'}</div>
-      <div class="to"><span>받는 이</span> n.n.</div>`;
+      <i class="stamp"></i><div class="pms">${G.postmark('보냄',d.at,-8)}${d.got?G.postmark('받음',d.got,11):''}</div>
+      <div class="t to2"><span class="f">받는 이</span> n.n.</div>${[0,1,2].map(i=>`<i class="addr" style="top:${100+i*10}mm"></i>`).join('')}`;
     const crop=`<i class="crop" style="left:4.95mm;top:0;width:.1mm;height:.5mm"></i><i class="crop" style="left:104.95mm;top:0;width:.1mm;height:.5mm"></i><i class="crop" style="top:.45mm;left:0;height:.1mm;width:4mm"></i><i class="crop" style="top:148.45mm;left:0;height:.1mm;width:4mm"></i>`;
     document.getElementById('out').innerHTML=`<div class="sheet"><div class="cell front" style="left:5mm;top:.5mm">${f}<i class="punch"></i></div>${crop}</div>
       <div class="sheet"><div class="cell back" style="left:105mm;top:.5mm">${b}<i class="punch"></i></div>${crop}</div>`;
@@ -87,7 +95,7 @@
     const min=Math.max(0,Math.round((b-a)/60000)), d=Math.floor(min/1440), h=Math.floor(min%1440/60), mm=min%60;
     return '첫 장에서 마지막 장까지 '+(d?d+'일 ':'')+(d||h?h+'시간':mm+'분'); };
   const KOR=['','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열'];
-  const postBack=rec=>`<div class="rule"></div>${rec}<i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:${78+i*12}mm"></i>`).join('')}`;
+  const postBack=(rec,pms)=>`<div class="rule"></div>${rec}<i class="stamp"></i>${pms?`<div class="pms">${pms}</div>`:''}<div class="t to2"><span class="f">받는 이</span> n.n.</div>${[0,1,2].map(i=>`<i class="addr" style="top:${100+i*10}mm"></i>`).join('')}`;
   // 엽서 목록: [앞, 뒤]
   const cards=[[
     `<div class="t ghost" style="left:12mm;top:14mm">n.n.</div><div class="t ghost name">${esc(r.title)||''}</div><div class="t ghost" style="right:12mm;bottom:12mm">폭 ${no}</div>`,
@@ -95,11 +103,11 @@
   ]];
   ss.forEach((x,i)=>{ const p=ss[i-1]; cards.push([
     `<div class="pic"><img src="${x.img}"></div><div class="t cap"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><span class="f">${esc(x.at)}</span></div>`,
-    `${p?`<div class="seen"><img data-src="${i-1}"></div>`:`<div class="seen none"></div>`}${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title)?esc(x.title)+'<br>':''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`
+    `${window.NN_EDGE.whole(ss, r.size, r.form||'line', x.id, '1mm')}${postBack(`<div class="t rec"><b>${pad2(x.n)}<small>/${pad2(r.size)}</small></b>${esc(x.title)?esc(x.title)+'<br>':''}<span class="f">폭 ${no}</span></div>`, window.NN_GIFT.postmark('보냄',x.at,-8)+(x.got?window.NN_GIFT.postmark('받음',x.got,11):''))}`
   ]); });
   cards.push([
     `<div class="t" style="left:12mm;right:12mm;bottom:22mm;line-height:2">폭 ${no}<br>${esc(r.title)||'<span class="f">이름 없음</span>'}<br><span class="f">${period}</span><br>${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><span class="f">${spanTxt(ss)}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div><div class="t f" style="left:12mm;top:14mm">n.n.</div><div class="t f" style="right:7mm;bottom:8mm">tu.:na.</div>`,
-    postBack('')
+    postBack('','')
   ]);
   // A4 한 장에 넷. 앞면 장 다음에 뒷면 장(긴 변 기준 양면 인쇄: 뒷면은 좌우가 바뀐 자리)
   const X=[5,105], Y=[.5,148.5];

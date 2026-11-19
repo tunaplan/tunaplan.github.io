@@ -143,11 +143,21 @@
     box-shadow:0 0 0 .5px rgba(68,71,76,.1)}
   .seen img{width:100%;height:100%;object-fit:cover}
   .seen.none{box-shadow:none;border-top:.5px dashed rgba(68,71,76,.25);height:0;aspect-ratio:auto}
-  .pcrule{position:absolute;left:50%;top:calc(var(--mm)*40);bottom:calc(var(--mm)*14);width:.5px;background:rgba(68,71,76,.22)}
+  .pcrule{position:absolute;left:50%;top:calc(var(--mm)*14);bottom:calc(var(--mm)*14);width:.5px;background:rgba(68,71,76,.22)}
   .addr{position:absolute;left:calc(50% + var(--mm)*4);right:calc(var(--mm)*7);height:.5px;background:rgba(68,71,76,.22)}
-  .stamp{position:absolute;right:calc(var(--mm)*7);top:calc(var(--mm)*40);width:calc(var(--mm)*16);height:calc(var(--mm)*20);
+  .stamp{position:absolute;right:calc(var(--mm)*7);top:calc(var(--mm)*14);width:calc(var(--mm)*16);height:calc(var(--mm)*20);
     border:.5px dashed rgba(68,71,76,.3)}
-  .rec{left:calc(var(--mm)*7);top:calc(var(--mm)*40);width:calc(var(--mm)*38)}
+  .rec{left:calc(50% + var(--mm)*4);top:calc(var(--mm)*44);width:calc(var(--mm)*38)}
+  .rec b small{font-size:.45em;color:var(--faint);letter-spacing:.1em}
+  .face .pms{position:absolute;right:calc(var(--mm)*14);top:calc(var(--mm)*11);display:flex;gap:calc(var(--mm)*.5);z-index:2}
+  .face .pms .pm{width:calc(var(--mm)*15);height:calc(var(--mm)*15)}
+  .face .to{left:calc(50% + var(--mm)*4);top:calc(var(--mm)*92)}
+  /* 엽서 한 면: 폭 전체 그림 — 내 칸만 남색 점선 */
+  .whole{position:absolute;left:calc(var(--mm)*7);top:calc(var(--mm)*14);display:grid;gap:calc(var(--mm)*.5);z-index:1}
+  .whole i{position:relative;display:block;overflow:hidden;background:#f7f8f6;box-shadow:0 0 0 .5px rgba(68,71,76,.22)}
+  .whole i img{width:100%;height:100%;object-fit:cover}
+  .whole i.empty{background:none;box-shadow:none;outline:.5px dashed rgba(68,71,76,.3);outline-offset:-.5px}
+  .whole i.me::after{content:"";position:absolute;inset:0;border:1px dashed rgb(40,62,104)}
   .rec b{display:block;font-weight:300;font-size:1.6em;letter-spacing:.06em;margin-bottom:.6em}
   /* 표지: 회색 판지, 잉크 없이 눌러 찍은 이름(형압) */
   .deboss{text-shadow:0 -.5px 0 rgba(40,44,52,.32), 0 .6px 0 rgba(255,255,255,.55)}
@@ -214,12 +224,12 @@
   .g-seen{position:absolute;left:calc(var(--mm)*7);top:calc(var(--mm)*14);width:calc(var(--mm)*86);aspect-ratio:750/120;overflow:hidden;box-shadow:0 0 0 .5px rgba(68,71,76,.1)}
   .g-seen img{width:100%;height:100%;object-fit:cover}
   .g-seen.none{box-shadow:none;border-top:.5px dashed rgba(68,71,76,.25);height:0;aspect-ratio:auto}
-  .g-rule{position:absolute;left:50%;top:calc(var(--mm)*40);bottom:calc(var(--mm)*14);width:.5px;background:rgba(68,71,76,.22)}
-  .g-rec{position:absolute;left:calc(var(--mm)*7);top:calc(var(--mm)*40);width:calc(var(--mm)*38);font-size:calc(var(--mm)*2.6);letter-spacing:.12em;line-height:1.7}
+  .g-rule{position:absolute;left:50%;top:calc(var(--mm)*14);bottom:calc(var(--mm)*14);width:.5px;background:rgba(68,71,76,.22)}
+  .g-rec{position:absolute;left:calc(50% + var(--mm)*4);top:calc(var(--mm)*44);width:calc(var(--mm)*38);font-size:calc(var(--mm)*2.6);letter-spacing:.12em;line-height:1.7}
   .g-rec b{display:block;font-weight:200;font-size:calc(var(--mm)*7);letter-spacing:.04em;line-height:1.2;margin-bottom:.4em}
   .g-rec b small{font-size:.45em;color:var(--faint);letter-spacing:.1em}
   .g-rec span{color:var(--faint)}
-  .g-pms{position:absolute;right:calc(var(--mm)*6);top:calc(var(--mm)*38);display:flex;gap:calc(var(--mm)*1)}
+  .g-pms{position:absolute;right:calc(var(--mm)*6);top:calc(var(--mm)*12);display:flex;gap:calc(var(--mm)*1)}
   .g-pms .pm{width:calc(var(--mm)*17);height:calc(var(--mm)*17)}
   .g-stamp{display:block;width:calc(var(--mm)*16);height:calc(var(--mm)*20);border:.5px dashed rgba(68,71,76,.3)}
   .g-to{position:absolute;left:calc(50% + var(--mm)*4);right:calc(var(--mm)*7);top:calc(var(--mm)*92);border-bottom:.5px solid rgba(68,71,76,.22);

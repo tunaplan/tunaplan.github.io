@@ -39,8 +39,11 @@
     const form = formOf(roll), list = roll.sheets || [], prev = list.find(x => x.n === row.n - 1);
     const kept = GIFT.mine.kept(row.id);
     const seen = kept && kept.seen ? kept.seen : (prev ? await edgeURL(prev.strip || prev.img, edgeOf(prev.n, form), !!prev.strip) : null);
+    const lastN = list.length ? list[list.length-1].n : 0;
+    const wsheets = list.map(x => ({id: x.id, n: x.n, img: x.id === row.id ? (imgOverride || (kept && kept.img) || x.img) : x.img,
+      folded: !roll.closed_at && roll === board.open && x.n === lastN && x.id !== row.id}));
     return {id: row.id, img: imgOverride || (kept && kept.img) || row.img, seen, n: row.n, size: roll.size, rollNo: rno(roll.id),
-      title: row.title || '', at: row.at, got: row.got || null};
+      title: row.title || '', at: row.at, got: row.got || null, whole: {sheets: wsheets, size: roll.size, form}};
   }
   const pad2 = n => String(n).padStart(2,'0');
   const rno = id => pad2(Math.max(0, id - 1));   // 폭 번호는 00부터: 첫 폭(두 사람이 만드는 폭 00)
@@ -247,8 +250,9 @@
   const card = (front, back, cls='') => `<div class="pg"><div class="pc ${cls}">
       <div class="face front ${cls==='cover'?'board':''}">${front}<i class="hole"></i></div>
       <div class="face back">${back}<i class="hole"></i></div>${RING}</div></div>`;
-  const postBack = (rec) => `<div class="pcrule"></div>${rec}
-      <i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:calc(var(--mm)*${78+i*12})"></i>`).join('')}`;
+  // 엽서 뒷면: 왼쪽 절반 = 전체 그림(또는 빈 자리), 오른쪽 = 우표·소인 · 기록 · 받는 이
+  const postBack = (rec, pms) => `<div class="pcrule"></div>${rec}<i class="stamp"></i>${pms ? `<div class="pms">${pms}</div>` : ''}
+      <div class="t to"><span class="f">받는 이</span> n.n.</div>${[0,1,2].map(i=>`<i class="addr" style="top:calc(var(--mm)*${100+i*10})"></i>`).join('')}`;
   // 첫 장에서 마지막 장까지 걸린 시간 — 판권의 한 줄
   const spanOf = ss => {
     const t = s => { const m = String(s||'').match(/(\d+)\.(\d+)\.(\d+) (\d+):(\d+)/); return m ? new Date(+m[1], m[2]-1, +m[3], +m[4], +m[5]).getTime() : null; };
@@ -274,8 +278,9 @@
       html += card(
         `<div class="pic"><img src="${x.img}" alt=""></div>
          <div class="t cap"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><span class="f">${esc(x.at)}</span></div>`,
-        `${prev ? `<div class="seen"><img data-src="${i-1}" alt=""></div>` : `<div class="seen none"></div>`}
-         ${postBack(`<div class="t rec"><b>${pad2(x.n)}</b>${esc(x.title) ? esc(x.title)+'<br>' : ''}<span class="f">${esc(x.at)}</span><br><span class="f">폭 ${no} · n.n.</span></div>`)}`);
+        `${NN_EDGE.whole(ss, r.size, formOf(r), x.id, 'var(--mm)')}
+         ${postBack(`<div class="t rec"><b>${pad2(x.n)}<small>/${pad2(r.size)}</small></b>${esc(x.title) ? esc(x.title)+'<br>' : ''}<span class="f">폭 ${no}</span></div>`,
+           GIFT.postmark('보냄', x.at, -8) + (x.got ? GIFT.postmark('받음', x.got, 11) : ''))}`);
     });
     // 판권 엽서
     html += card(
@@ -284,7 +289,7 @@
          ${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><span class="f">${spanOf(ss)}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div>
        <div class="t f" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
        <div class="t f" style="right:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">tu.:na.</div>`,
-      postBack(''));
+      postBack('', ''));
     pages.innerHTML = html; pages.scrollLeft = 0;
     // 각자가 본 가장자리 한 줄(옆 가장자리는 눕혀서 가로 띠로)
     const fm = formOf(r);
@@ -524,8 +529,10 @@
       const roll0 = board.open || {id: (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1, size: pick, form: pickForm, sheets: []};
       const prevRow = rows[rows.length-1];
       const seenUrl = prevRow ? await edgeURL(prevRow.img, edgeOf(prevRow.n, formOf(roll0)), true) : null;
+      const wsheets = rows.map((x, i) => ({id: x.id, n: x.n, img: x.img, folded: i === rows.length-1}))   // 앞 장은 아직 접힌 채
+        .concat([{id: res.id, n: rows.length + 1, img: out.img}]);
       const gd = {id: res.id, img: out.img, seen: seenUrl, n: rows.length + 1, size: roll0.size, rollNo: rno(roll0.id),
-        title: cTitle.value.trim(), at: nowAt(), got: null};
+        title: cTitle.value.trim(), at: nowAt(), got: null, whole: {sheets: wsheets, size: roll0.size, form: formOf(roll0)}};
       GIFT.mine.add(res.id); GIFT.mine.keep(res.id, {img: out.img, seen: seenUrl});
       // 내 장이 스스로 접힌다: 다음 사람에게 끝자락 한 줄만 남기고
       if(!(res && res.closed)){

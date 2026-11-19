@@ -49,7 +49,8 @@ window.NN_GIFT = (function(){
     cur = d;
     front.innerHTML = `<div class="g-pic"><img src="${d.img}" alt=""></div>
       <div class="g-cap"><span>폭 ${d.rollNo} · ${pad2(d.n)}/${pad2(d.size)}</span><em>${esc(d.title)}</em><time>${esc(d.at)}</time></div>`;
-    back.innerHTML = `${d.seen ? `<div class="g-seen"><img src="${d.seen}" alt=""></div>` : '<div class="g-seen none"></div>'}
+    const W = d.whole ? window.NN_EDGE.whole(d.whole.sheets, d.whole.size, d.whole.form, d.id, 'var(--mm)') : '';
+    back.innerHTML = `${W}
       <div class="g-rule"></div>
       <div class="g-rec"><b>${pad2(d.n)}<small>/${pad2(d.size)}</small></b>${esc(d.title) ? esc(d.title) + '<br>' : ''}<span>폭 ${d.rollNo}</span></div>
       <div class="g-pms">${postmark('보냄', d.at, -8)}${d.got ? postmark('받음', d.got, 11) : '<i class="g-stamp"></i>'}</div>
