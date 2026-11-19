@@ -47,7 +47,9 @@
   const esc = t => String(t||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const cnt = {set textContent(v){}};
   // 메뉴 셋: 만들기(진행 중인 폭) · 만들어진 것(닫힌 폭들) · 책처럼(책장)
-  let view = 'make';
+  let view = 'make', revealRoll = null;
+  const qp = new URLSearchParams(location.search), linkRoll = +qp.get('roll') || null;   // ?roll=번호(내부 id)로 바로 그 폭에
+  if(linkRoll) view = 'made';
   // 자리 잡기(5분): 누군가 잇는 중이면 그 끝나는 시각. 내 자리면 token.
   let heldUntil = null, token = null, myUntil = null;
   const mmss = ms => { const t = Math.max(0, Math.ceil(ms/1000)); return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`; };
@@ -159,15 +161,22 @@
   function renderMade(){
     if(!board.closed.length){ chain.innerHTML = '<div class="empty">아직 닫힌 폭이 없어요</div>'; return; }
     board.closed.forEach(r => {
-      const h = document.createElement('div'); h.className = 'roll closed';
+      const h = document.createElement('div'); h.className = 'roll closed'; h.id = 'roll-' + r.id;
       const mineHere = (r.sheets||[]).some(x => GIFT.mine.has(x.id));
-      h.innerHTML = `<span>폭 ${rno(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time>${mineHere ? '<span class="mk">완성본</span>' : ''}<span class="bk">엮음</span>`;
+      h.innerHTML = `<span>폭 ${rno(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="mk${mineHere ? ' mine' : ''}">완성본</span><span class="bk">엮음</span>`;
       h.addEventListener('click', async e => {
         if(e.target.classList.contains('mk')){ const b = await GIFT.storyRoll(r, GIFT.mine.ids(), rno(r.id)); return GIFT.share(b, `n.n.-${rno(r.id)}.png`); }
         openBook(r);
       });
       chain.appendChild(h);
-      if(formOf(r) === 'snake') chain.appendChild(snake(r.sheets||[], 'snake'));
+      if(formOf(r) === 'snake'){
+        const sn = snake(r.sheets||[], 'snake');
+        if(revealRoll === r.id){                  // 닫히는 순간: 모든 장이 차례로 펼쳐지고 이음매가 꿰매진다
+          sn.classList.add('reveal'); sn.querySelectorAll('.cell').forEach((c, i) => c.style.setProperty('--i', i));
+          revealRoll = null;
+        }
+        chain.appendChild(sn);
+      }
       else (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
     });
   }
@@ -240,6 +249,14 @@
       <div class="face back">${back}<i class="hole"></i></div>${RING}</div></div>`;
   const postBack = (rec) => `<div class="pcrule"></div>${rec}
       <i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:calc(var(--mm)*${78+i*12})"></i>`).join('')}`;
+  // 첫 장에서 마지막 장까지 걸린 시간 — 판권의 한 줄
+  const spanOf = ss => {
+    const t = s => { const m = String(s||'').match(/(\d+)\.(\d+)\.(\d+) (\d+):(\d+)/); return m ? new Date(+m[1], m[2]-1, +m[3], +m[4], +m[5]).getTime() : null; };
+    if(ss.length < 2) return ''; const a = t(ss[0].at), b = t(ss[ss.length-1].at); if(a == null || b == null) return '';
+    const min = Math.max(0, Math.round((b - a) / 60000)), d = Math.floor(min / 1440), h = Math.floor(min % 1440 / 60), mm = min % 60;
+    return '첫 장에서 마지막 장까지 ' + (d ? d + '일 ' : '') + (d || h ? h + '시간' : mm + '분');
+  };
+  window.NN_SPAN = spanOf;
   function openBook(r){
     const ss = r.sheets || [], no = rno(r.id);
     const period = `${esc(r.from)} — ${esc(r.to)}`;
@@ -264,7 +281,7 @@
     html += card(
       `<div class="t" style="left:calc(var(--mm)*12);right:calc(var(--mm)*12);bottom:calc(var(--mm)*22);line-height:2">
          폭 ${no}<br>${esc(r.title) || '<span class="f">이름 없음</span>'}<br><span class="f">${period}</span><br>
-         ${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div>
+         ${r.size}장 · <span class="f">이름 모를 ${KOR[r.size]||r.size}</span><br><span class="f">${spanOf(ss)}</span><br><br><span class="f">n.n. — 비워 둔 이름</span></div>
        <div class="t f" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
        <div class="t f" style="right:calc(var(--mm)*7);bottom:calc(var(--mm)*8)">tu.:na.</div>`,
       postBack(''));
@@ -327,6 +344,7 @@
     size = board.open ? board.open.size : null;
     lastId = rows.length ? rows[rows.length-1].id : null;
     render();
+    if(linkRoll && !load.done){ load.done = true; setTimeout(()=>{ const t = document.getElementById('roll-' + linkRoll); t && t.scrollIntoView({block:'start'}); }, 80); }
   }
 
   /* ── 한 장 놓기 ── */
@@ -424,19 +442,27 @@
 
   let last = null;
   const pos = e => { const rc = ink.getBoundingClientRect(); return [e.clientX-rc.left, e.clientY-rc.top]; };
-  const rec = p => { const rc = ink.getBoundingClientRect();
-    stroke && stroke.p.push([+(p[0]/rc.width).toFixed(4), +(p[1]/rc.height).toFixed(4), Math.round(performance.now()-t0)]); };
-  let run = 0;                                   // 한 획 안에서 땀의 박자를 이어 간다
-  ink.addEventListener('pointerdown', e=>{ ink.setPointerCapture(e.pointerId); last = pos(e); run = 0;
-    stroke = {p:[]}; strokes.push(stroke); rec(last); });
+  // 굵기 = 손이 실제로 닿은 넓이(손가락) 또는 누른 힘(펜). 알려주지 않는 기기는 한 굵기. 흉내 내지 않는다.
+  const widthOf = e => {
+    if(e.pointerType === 'pen' && e.pressure > 0 && e.pressure !== .5) return .5 + e.pressure * 3.4;
+    if(e.pointerType === 'touch' && e.width > 2) return Math.max(.7, Math.min(6, .4 + (e.width - 6) * .11));
+    return 1.8;
+  };
+  let lastW = 1.8;
+  const rec = (p, w) => { const rc = ink.getBoundingClientRect();
+    stroke && stroke.p.push([+(p[0]/rc.width).toFixed(4), +(p[1]/rc.height).toFixed(4), Math.round(performance.now()-t0), +(w||1.8).toFixed(2)]); };
+  ink.addEventListener('pointerdown', e=>{ ink.setPointerCapture(e.pointerId); last = pos(e); lastW = widthOf(e);
+    stroke = {p:[]}; strokes.push(stroke); rec(last, lastW);
+    ictx.beginPath(); ictx.arc(last[0], last[1], lastW/2, 0, 7); ictx.fillStyle = '#44474c'; ictx.fill(); inked = true; });
   ink.addEventListener('pointermove', e=>{
     if(!last) return;
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for(const ev of evs){
-      const p = pos(ev);
+      const p = pos(ev), w = widthOf(ev);
       // 손이 지나간 그대로 잇는다: 매끈하게 다듬거나 모양을 바꾸지 않는다
+      ictx.lineWidth = (w + lastW) / 2;
       ictx.beginPath(); ictx.moveTo(last[0],last[1]); ictx.lineTo(p[0],p[1]); ictx.stroke();
-      last = p; inked = true; rec(p);
+      last = p; lastW = w; inked = true; rec(p, w);
     }
   });
   const up = ()=>{ last = null; stroke = null; };
@@ -501,14 +527,22 @@
       const gd = {id: res.id, img: out.img, seen: seenUrl, n: rows.length + 1, size: roll0.size, rollNo: rno(roll0.id),
         title: cTitle.value.trim(), at: nowAt(), got: null};
       GIFT.mine.add(res.id); GIFT.mine.keep(res.id, {img: out.img, seen: seenUrl});
+      // 내 장이 스스로 접힌다: 다음 사람에게 끝자락 한 줄만 남기고
+      if(!(res && res.closed)){
+        const e = edgeOf(rows.length + 1, curForm()), f = document.createElement('div');
+        f.className = 'cfold ' + (e === 'bottom' ? 'fb' : e === 'right' ? 'fr' : 'fl');
+        paper.appendChild(f); requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('go')));
+        await new Promise(r => setTimeout(r, 750)); f.remove();
+      }
       lifting = new Set([prev, res && res.closed ? res.id : null]);
+      if(res && res.closed){ view = 'made'; revealRoll = roll0.id; }
       token = null; closeCompose(true); await load();
       setTimeout(()=>{ lifting = new Set(); }, 50);
       setTimeout(()=>{                                   // 방금 펼쳐진 장으로 (폭이 닫혔으면 그 폭 머리로)
-        const t = res && res.closed ? chain.querySelector('.roll:not(.current)') : [...chain.querySelectorAll('.item')].slice(-3)[0];
+        const t = res && res.closed ? document.getElementById('roll-' + roll0.id) : (chain.querySelector('.snake') ? chain.querySelector('.cell .next, .sheet.last') : [...chain.querySelectorAll('.item')].slice(-3)[0]);
         t && t.scrollIntoView({block:'start'});
       }, 60);
-      setTimeout(()=>GIFT.open(gd), 1100);
+      setTimeout(()=>GIFT.open(gd), res && res.closed ? 2400 : 1100);   // 닫히는 순간엔 다 펼쳐지는 걸 먼저 보고
     }catch(e){
       const m = String(e.message||'');
       if(m.includes('held')){

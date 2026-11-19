@@ -176,6 +176,23 @@
   #book .pn{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 16px);left:0;right:0;text-align:center;
     font-size:10px;letter-spacing:.2em;color:var(--faint);font-variant-numeric:tabular-nums;pointer-events:none}
 
+  /* 놓는 순간 내 장이 스스로 접힌다 */
+  .cfold{position:absolute;z-index:4;background:#eceeeb;transition:transform .6s cubic-bezier(.5,0,.15,1)}
+  .cfold::after{content:"";position:absolute;background:rgba(68,71,76,.45)}
+  .cfold.fb{left:0;right:0;top:0;bottom:12%;transform-origin:50% 0;transform:scaleY(0)}
+  .cfold.fb::after{left:0;right:0;bottom:0;height:1px}
+  .cfold.fr{top:0;bottom:0;left:0;right:12%;transform-origin:0 50%;transform:scaleX(0)}
+  .cfold.fr::after{top:0;bottom:0;right:0;width:1px}
+  .cfold.fl{top:0;bottom:0;right:0;left:12%;transform-origin:100% 50%;transform:scaleX(0)}
+  .cfold.fl::after{top:0;bottom:0;left:0;width:1px}
+  .cfold.go{transform:none}
+  /* 폭이 닫히는 순간: 장들이 차례로 놓이고 이음매가 꿰매진다 */
+  .snake.reveal .cell{animation:lay .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 140ms)}
+  .snake.reveal .cell::after{animation:sew-in .5s ease both;animation-delay:calc(var(--i) * 140ms + 300ms)}
+  @keyframes lay{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes sew-in{from{opacity:0}to{opacity:1}}
+  .roll .mk:not(.mine){color:var(--faint)}
+
   /* 보상: 번호 매긴 엽서 */
   #gift{position:fixed;inset:0;z-index:25;background:#e6e7e4;display:flex;flex-direction:column;align-items:center;justify-content:center;
     opacity:0;pointer-events:none;transition:opacity .25s linear;--pw:min(78vw, calc((100svh - 190px) * 100 / 148));--mm:calc(var(--pw) / 100)}
@@ -213,7 +230,7 @@
   .g-tools .g-save{color:var(--ink)}
   .g-hint{margin-top:8px;height:14px;font-size:10px;letter-spacing:.1em;color:var(--faint)}
   /* 내 장(이 폰이 기억하는 것): 남색 홈질 테두리 — 나에게만 보인다 */
-  .mine::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+  .sheet.mine::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
     border:1.5px dashed rgba(40,62,104,.55)}
   .roll.closed{flex-wrap:wrap;row-gap:4px}
   .roll.closed em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
