@@ -359,12 +359,11 @@
     const rc = paper.getBoundingClientRect(), d = Math.min(3, devicePixelRatio||1);
     ink.width = Math.round(rc.width*d); ink.height = Math.round(rc.height*d);
     ictx.setTransform(d,0,0,d,0,0);
-    ictx.lineCap = ictx.lineJoin = 'round'; ictx.strokeStyle = 'rgba(40,62,104,.92)'; ictx.lineWidth = 2;   // 손가락 선 = 남색 실의 홈질
+    ictx.lineCap = ictx.lineJoin = 'round'; ictx.strokeStyle = '#44474c'; ictx.lineWidth = 1.8; ictx.setLineDash([]);   // 그린 그대로 — 보정하지 않는다
   }
   function clearAll(){
     ictx.save(); ictx.setTransform(1,0,0,1,0,0); ictx.clearRect(0,0,ink.width,ink.height); ictx.restore();
     photo = null; photoEl.removeAttribute('src'); photoEl.style.display = 'none'; inked = false; file.value = '';
-    cp.classList.remove('hasphoto'); cp.classList.remove('tracing');
     strokes = []; stroke = null;                      // 지운 시도는 남기지 않는다
   }
   async function openCompose(){
@@ -377,7 +376,7 @@
       }catch(e){ token = null; return; }
     }
     note.textContent = '';
-    stageStrip(); setPhotoMode('keep'); cp.classList.remove('hasphoto'); startMarks();
+    stageStrip();
     const first = !board.open, n = rows.length + 1, total = first ? pick : size;
     cp.classList.toggle('first', first);
     cp.classList.toggle('final', !first && n === size);
@@ -435,10 +434,9 @@
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for(const ev of evs){
       const p = pos(ev);
-      const d = Math.hypot(p[0]-last[0], p[1]-last[1]); if(d < .8) continue;
-      ictx.setLineDash([6.5, 4.5]); ictx.lineDashOffset = -run;   // 땀 6.5 · 틈 4.5 — 떨림이 실의 결이 된다
+      // 손이 지나간 그대로 잇는다: 매끈하게 다듬거나 모양을 바꾸지 않는다
       ictx.beginPath(); ictx.moveTo(last[0],last[1]); ictx.lineTo(p[0],p[1]); ictx.stroke();
-      run += d; last = p; inked = true; rec(p);
+      last = p; inked = true; rec(p);
     }
   });
   const up = ()=>{ last = null; stroke = null; };
@@ -447,34 +445,11 @@
   file.addEventListener('change', ()=>{
     const f = file.files && file.files[0]; if(!f) return;
     const url = URL.createObjectURL(f), im = new Image();
-    im.onload = ()=>{ photo = im; photoEl.src = url; photoEl.style.display = ''; setPhotoMode('keep'); cp.classList.add('hasphoto'); };
+    im.onload = ()=>{ photo = im; photoEl.src = url; photoEl.style.display = ''; };
     im.src = url;
   });
-  // 사진: 그대로 남기거나, 옅게 깔고 따라 그린 뒤 선만 남기거나
-  let photoMode = 'keep';
-  function setPhotoMode(m){ photoMode = m; cp.classList.toggle('tracing', m === 'trace');
-    cp.querySelectorAll('.cpm b').forEach(b => b.classList.toggle('on', b.dataset.m === m)); }
-  cp.querySelectorAll('.cpm b').forEach(b => b.addEventListener('click', ()=>setPhotoMode(b.dataset.m)));
-  // 시작점: 앞 장 가장자리에서 선이 끝난 자리를, 내 종이 맞닿는 가장자리에 작은 땀으로 (저장되지 않는다)
-  async function startMarks(){
-    const ov = cp.querySelector('.cstart'); ov.innerHTML = '';
-    const prev = rows[rows.length-1]; if(!prev || !board.open) return;
-    const e = edgeOf(prev.n, curForm());
-    const im = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = prev.img; });
-    if(!im) return;
-    const w = im.naturalWidth, h = im.naturalHeight, c = document.createElement('canvas'); c.width = w; c.height = h;
-    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
-    const len = e === 'bottom' ? w : h, px = [];
-    for(let i = 0; i < len; i++){
-      const [X, Y] = e === 'bottom' ? [i, h-2] : [e === 'right' ? w-2 : 1, i];
-      const d = x.getImageData(X, Y, 1, 1).data; px.push((d[0]*.3 + d[1]*.59 + d[2]*.11) < 165);
-    }
-    const marks = []; let st = -1;
-    px.forEach((dark, i) => { if(dark && st < 0) st = i; if((!dark || i === len-1) && st >= 0){ marks.push((st + i) / 2 / len); st = -1; } });
-    const tick = t => e === 'bottom' ? `<line x1="${t*100}" y1="0" x2="${t*100}" y2="2.2"/>`
-      : e === 'right' ? `<line x1="0" y1="${t*133.33}" x2="2.2" y2="${t*133.33}"/>` : `<line x1="100" y1="${t*133.33}" x2="97.8" y2="${t*133.33}"/>`;
-    ov.innerHTML = marks.slice(0, 12).map(tick).join('');
-  }
+  const photoMode = 'keep';
+  const setPhotoMode = () => {};
 
   // 사진 원본(책용): 긴 변 1600px, 자르지 않고 그대로
   function original(){
