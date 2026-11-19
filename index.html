@@ -105,6 +105,10 @@
   .sig{position:absolute;left:0;right:0;top:61vh;text-align:center;pointer-events:none;line-height:1;z-index:1}
   /* 이름: n.n. — nomen nescio, 이름 모를 */
   .sig b{font-weight:200;font-size:30px;letter-spacing:.2em;padding-left:.2em;color:var(--ink)}
+  /* 이름 아래 작은 풀이: 이름과 같은 폭으로 맞춰 놓는다 */
+  .gloss{position:absolute;top:0;white-space:nowrap;font-size:10px;font-weight:300;color:var(--faint);
+    pointer-events:none;z-index:1;opacity:0;transition:opacity 1.2s ease}
+  .gloss.on{opacity:.9}
   .by{position:absolute;right:7vw;bottom:5vh;pointer-events:none;z-index:1;
     font-size:9px;font-weight:300;letter-spacing:.3em;color:var(--faint)}
 </style>
@@ -128,6 +132,7 @@
 <div id="lock">
   <div class="trace">나의 오랜 친구에게</div>
   <div class="sig"><b><span class="g">n</span><span class="g">.</span><span class="g">n</span><span class="g" id="knot">.</span></b></div>
+  <div class="gloss">비워 둔 이름</div>
   <div class="by">tu.:na.</div>
   <canvas id="pad"></canvas>
 </div>
@@ -163,6 +168,19 @@
       else under.push({x:b.left+b.width*.5,y});
     });
     if(under.length) under.unshift({x:under[0].x-14,y:under[0].y+3});
+    // 풀이 한 줄: 첫 n의 왼쪽 끝부터 마지막 점까지, 이름과 같은 폭으로 고르게 벌린다
+    const gl = document.querySelector('.gloss');
+    if(gl && gs.length){
+      const L = gs[0].getBoundingClientRect().left, R = gs[gs.length-1].getBoundingClientRect();
+      const right = R.left + R.width*.5 - 2, n = [...gl.textContent].length;
+      gl.style.letterSpacing = '0px';
+      const nat = gl.getBoundingClientRect().width;
+      const ls = Math.max(0, (right - L - nat) / (n - 1));
+      gl.style.letterSpacing = ls.toFixed(2)+'px';
+      gl.style.left = L.toFixed(1)+'px';
+      gl.style.top = (knot.y + 14).toFixed(1)+'px';
+      gl.classList.add('on');
+    }
   }
   function underThread(alpha){
     if(under.length<2) return;
