@@ -126,7 +126,7 @@
 - **자리 잡기(5분)**: 빈 자리를 누르면 5분 동안 그 자리는 그 사람 것(왼쪽 위에 남은 시간 `4:59`). 그동안 다른 사람 화면에선 빈 자리의 바늘이 천천히 들락날락하고 기록 줄에 `잇는 중 3:12` — 글 대신 형식으로. 놓지 않고 닫으면 풀리고, 5분이 지나도 아무도 안 잡았으면 그대로 놓을 수 있다. 서버 함수 `held()`·`hold(k, ptoken)`·`release(ptoken)`·`place3(…)`(남이 잡고 있으면 'held'). 설정 `supabase-3-hold.sql`.
 - 동시에 놓으면 먼저 누른 장이 들어가고, 늦은 사람에겐 새 한 줄이 보인다(그린 건 남음). 마지막 자리가 겹치면 늦은 장은 다음 폭의 첫 장.
 - 놓는 화면: 위에 앞 장의 아래 한 줄, 그 아래 같은 비율의 빈 종이. 손으로 그리기 + `사진` · `지우기` · `놓기` 세 마디만. 사진 위에 그려도 된다.
-- 저장: Supabase(프로젝트 nn-tuna, 서울). 표 `rolls`·`sheets`는 직접 열리지 않고 함수로만 — `board()`(진행 중인 폭 + 닫힌 폭들, 진행 중 폭의 맨 끝 장은 strip만), `can_place(k)`, `place2(k, after_id, pimg, pstrip, ptitle, psize, proll, pstrokes, pphoto)`(그새 누가 놓았으면 'moved', 다 차면 closed). 화면용 한 장은 750×1000 JPEG, strip은 아래 120px. 설정은 `supabase.sql` → `supabase-2-rolls.sql` 순서.
+- 저장: Supabase(프로젝트 nn-tuna, 서울). 표 `rolls`·`sheets`는 직접 열리지 않고 함수로만 — `board()`(진행 중인 폭 + 닫힌 폭들, 진행 중 폭의 맨 끝 장은 strip만), `can_place(k)`, `place2(k, after_id, pimg, pstrip, ptitle, psize, proll, pstrokes, pphoto)`(그새 누가 놓았으면 'moved', 다 차면 closed). 화면용 한 장은 750×1000 JPEG, strip은 아래 120px. 설정은 `supabase.sql` → `supabase-2-rolls.sql` → `supabase-3-hold.sql` 순서(모두 실행 완료 2026-11-19). 놓기는 `place3`를 쓴다.
 - 설정 SQL은 `supabase.sql`(저장소엔 열쇠를 빼고 둠). **열쇠는 저장소·코드에 절대 넣지 않는다.**
 - 지울 장은 Supabase Table Editor → sheets 에서 hidden을 true로.
 
