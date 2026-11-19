@@ -183,6 +183,10 @@
   .csize b.on{color:var(--ink);border-bottom:1px solid rgb(40,62,104)}
   .crow.csize,.crow.croll{display:none}
   #compose.first .csize,#compose.final .croll{display:flex}
+  .ctime{position:absolute;top:calc(env(safe-area-inset-top) + 22px);left:18px;font-size:10px;letter-spacing:.18em;color:var(--faint);font-variant-numeric:tabular-nums}
+  /* 누가 잇는 중: 빈 자리의 바늘이 천천히 들락날락 */
+  .next svg.busy{animation:sew 2.4s ease-in-out infinite}
+  @keyframes sew{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
   .cconsent{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 12px);font-size:9px;letter-spacing:.12em;color:rgba(162,167,172,.8)}
   .cnote{height:16px;margin-top:8px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
   .cclose{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;background:none;border:0;
@@ -225,6 +229,7 @@
 
 <div id="compose">
   <button class="cclose" aria-label="닫기">×</button>
+  <div class="ctime"></div>
   <img class="cstrip" alt="">
   <div class="cpaper"><img class="cphoto" alt="" style="display:none"><canvas class="cink"></canvas></div>
   <div class="cfields">

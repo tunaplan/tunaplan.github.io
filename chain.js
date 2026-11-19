@@ -35,6 +35,9 @@
   const cnt = {set textContent(v){}};
   // 메뉴 셋: 만들기(진행 중인 폭) · 만들어진 것(닫힌 폭들) · 책처럼(책장)
   let view = 'make';
+  // 자리 잡기(5분): 누군가 잇는 중이면 그 끝나는 시각. 내 자리면 token.
+  let heldUntil = null, token = null, myUntil = null;
+  const mmss = ms => { const t = Math.max(0, Math.ceil(ms/1000)); return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`; };
   const navs = [...document.querySelectorAll('.bar nav a')];
   navs.forEach(a => a.addEventListener('click', ()=>{ view = a.dataset.v; document.body.classList.remove('far'); render(); app.scrollTo({top:0}); }));
 
@@ -67,14 +70,15 @@
     rows.forEach((row, i) => chain.appendChild(sheetItem(row, i === rows.length-1)));
     cnt.textContent = size ? `${pad2(rows.length)} / ${pad2(size)}` : '';
     const it = document.createElement('section'); it.className = 'item';
-    it.innerHTML = `<div class="label"><span>${pad2(rows.length+1)}</span><em></em><time></time></div>`;
+    it.innerHTML = `<div class="label"><span>${pad2(rows.length+1)}</span><em></em><time class="heldt"></time></div>`;
     const next = document.createElement('div'); next.className = 'next';
-    if(canPlace){                                                // 바늘이 빈 자리로 늘어져 있다
-      next.innerHTML = `<svg viewBox="0 0 40 170"><path d="M20 0 Q12 70 26 120" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
+    const busy = heldUntil && heldUntil > Date.now() && !token;
+    if(canPlace || busy){                                        // 바늘이 빈 자리로 늘어져 있다 (누가 잇는 중이면 들락날락)
+      next.innerHTML = `<svg viewBox="0 0 40 170" class="${busy ? 'busy' : ''}"><path d="M20 0 Q12 70 26 120" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
         `<line x1="22" y1="112" x2="29" y2="150" stroke="#a9aeb3" stroke-width="1.3" stroke-linecap="round"/></svg>`;
     }
     next.addEventListener('click', ()=>{
-      if(canPlace) return openCompose();
+      if(canPlace && !busy) return openCompose();
       if(DEMO){                                                  // 예시: 다음 장이 놓인 순간처럼 마지막 장을 펼친다
         const ls = chain.querySelector('.sheet.last'); if(!ls) return;
         ls.querySelector('img').className = 'pic';
@@ -263,7 +267,15 @@
     photo = null; photoEl.removeAttribute('src'); photoEl.style.display = 'none'; inked = false; file.value = '';
     strokes = []; stroke = null;                      // 지운 시도는 남기지 않는다
   }
-  function openCompose(){
+  async function openCompose(){
+    if(!DEMO){
+      token = token || Math.random().toString(36).slice(2) + Date.now().toString(36);
+      try{
+        const h = await rpc('hold', {k:key, ptoken:token});
+        if(!h || !h.ok){ token = null; heldUntil = h && h.until ? Date.parse(h.until) : null; render(); return; }
+        myUntil = Date.parse(h.until);
+      }catch(e){ token = null; return; }
+    }
     note.textContent = '';
     const prev = rows[rows.length-1];
     if(prev){ cStrip.src = prev.img; cStrip.style.display = ''; } else { cStrip.removeAttribute('src'); cStrip.style.display = 'none'; }
@@ -274,8 +286,42 @@
     document.body.classList.add('composing');
     requestAnimationFrame(()=>{ sizeInk(); clearAll(); });
   }
-  function closeCompose(){ document.body.classList.remove('composing'); }
-  cp.querySelector('.cclose').addEventListener('click', closeCompose);
+  function closeCompose(placed){
+    document.body.classList.remove('composing');
+    if(token && !placed && !DEMO) rpc('release', {ptoken:token}).catch(()=>{});
+    token = null; myUntil = null; cp.querySelector('.ctime').textContent = '';
+  }
+  // 1초마다: 내 남은 시간 / 남이 잇는 중인 남은 시간
+  setInterval(()=>{
+    const ct = cp.querySelector('.ctime');
+    if(myUntil && document.body.classList.contains('composing')){
+      const left = myUntil - Date.now();
+      ct.textContent = mmss(left);
+      if(left <= 0 && !note.textContent) note.textContent = '자리가 풀렸어요 — 그래도 놓을 수 있어요';
+    }
+    const ht = chain.querySelector('.heldt');
+    if(ht){
+      const busy = heldUntil && heldUntil > Date.now() && !token;
+      ht.textContent = busy ? `잇는 중 ${mmss(heldUntil - Date.now())}` : '';
+      const sv = chain.querySelector('.next svg');
+      if(!busy && sv && sv.classList.contains('busy')){ heldUntil = null; render(); }
+    }
+  }, 1000);
+  // 20초마다 누가 잇는 중인지 가볍게 묻는다
+  async function pollHeld(){
+    if(DEMO) return;
+    try{
+      const u = await rpc('held');
+      const v = u ? Date.parse(u) : null;
+      const changed = (!!v) !== (!!(heldUntil && heldUntil > Date.now()));
+      heldUntil = v;
+      if(changed && view === 'make' && !document.body.classList.contains('composing')) render();
+    }catch(e){}
+  }
+  setInterval(pollHeld, 20000);
+  addEventListener('pagehide', ()=>{ if(token && !DEMO) fetch(`${SB}/rest/v1/rpc/release`, {method:'POST', keepalive:true,
+    headers:{apikey:PK, 'Content-Type':'application/json'}, body:JSON.stringify({ptoken:token})}); });
+  cp.querySelector('.cclose').addEventListener('click', ()=>closeCompose(false));
   cp.querySelector('.cclear').addEventListener('click', clearAll);
 
   let last = null;
@@ -335,8 +381,8 @@
     do { out = compose(q); q -= .1; } while(out.img.length > 680000 && q > .3);
     try{
       const prev = lastId;
-      const res = await rpc('place2', {
-        k:key, after_id:lastId, pimg:out.img, pstrip:out.strip,
+      const res = await rpc('place3', {
+        k:key, ptoken:token, after_id:lastId, pimg:out.img, pstrip:out.strip,
         ptitle: cTitle.value.trim() || null,
         psize: board.open ? null : pick,
         proll: cp.classList.contains('final') ? (cRoll.value.trim() || null) : null,
@@ -345,7 +391,7 @@
       });
       navigator.vibrate && navigator.vibrate(res && res.closed ? [15,60,15] : 15);
       lifting = new Set([prev, res && res.closed ? res.id : null]);
-      closeCompose(); await load();
+      token = null; closeCompose(true); await load();
       setTimeout(()=>{ lifting = new Set(); }, 50);
       setTimeout(()=>{                                   // 방금 펼쳐진 장으로 (폭이 닫혔으면 그 폭 머리로)
         const t = res && res.closed ? chain.querySelector('.roll:not(.current)') : [...chain.querySelectorAll('.item')].slice(-3)[0];
@@ -353,7 +399,9 @@
       }, 60);
     }catch(e){
       const m = String(e.message||'');
-      if(m.includes('moved')){
+      if(m.includes('held')){
+        note.textContent = '누군가 잇는 중이에요';
+      } else if(m.includes('moved')){
         note.textContent = '그새 누군가 이어 놓았어요';
         await load(); openStripOnly();
       } else if(m.includes('no key')){
@@ -375,6 +423,6 @@
 
   (async ()=>{
     if(key && !DEMO){ try{ canPlace = !!(await rpc('can_place', {k:key})); }catch(e){ canPlace = false; } }
-    load();
+    await pollHeld(); load();
   })();
 })();
