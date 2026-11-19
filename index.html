@@ -20,54 +20,54 @@
   html,body{height:100%;overflow:hidden;background:var(--paper);
     font-family:"Noto Serif KR",serif;font-weight:200;color:var(--ink)}
 
-  /* 안쪽 (종이 너머) */
+  /* 안쪽 — 앞면(잠금)의 반전: 손 → 규칙. 같은 서체·종이·실, 정반대의 태도.
+     꽉 찬 화면, 기울임 없음, 1px 선, 번호와 날짜, 즉시 전환, 한 장씩 딱 멈춤. */
   #app{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--paper);
-    opacity:0;transition:opacity 1.6s ease 1s}
+    opacity:0;touch-action:pan-y;scroll-snap-type:y mandatory;scroll-padding-top:var(--bar)}
+  :root{--bar:44px;--line:rgba(68,71,76,.28);--sw:min(100vw,480px)}
   body.opened #app{opacity:1}
-  #app h1{font-weight:200;font-size:17px;letter-spacing:.3em;padding-left:.3em;text-align:center;margin:9vh 0 7vh}
-  #app .by{position:fixed;right:7vw;bottom:5vh;font-size:9px;font-weight:300;letter-spacing:.3em;color:var(--faint);pointer-events:none;z-index:5}
-
-  /* 이어 붙인 장들 — 형식은 같고, 무엇이 올지는 모른다 */
-  #chain{position:relative;width:var(--sw);margin:0 auto;padding-bottom:22vh;--sw:min(72vw,340px);
-    transform-origin:50% 0;transition:transform 1.8s cubic-bezier(.45,0,.2,1)}
-  #app{touch-action:pan-y}
+  .bar{position:sticky;top:0;z-index:6;height:var(--bar);display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;background:var(--paper);border-bottom:1px solid var(--line);
+    font-size:11px;font-weight:300;letter-spacing:.18em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .bar .cnt{color:var(--faint)}
+  #chain{position:relative;width:var(--sw);margin:0 auto;padding-bottom:30vh;transform-origin:50% 0;
+    transition:transform .5s cubic-bezier(.2,0,0,1)}
   body.far #app{overflow:hidden}
   body.far #chain{transform:scale(var(--fs,1))}
-  .sheet time{transition:opacity .8s}
-  body.far .sheet time{opacity:0}
-  #app{transition:opacity 1.6s ease 1s, filter .9s ease}
-  body.solo #app{filter:blur(6px);opacity:.25;transition:opacity .9s ease, filter .9s ease}
-  #solo{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    opacity:0;pointer-events:none;transition:opacity .9s ease}
-  body.solo #solo{opacity:1;pointer-events:auto}
-  #solo img{width:min(86vw, calc((100svh - 120px) * .75));aspect-ratio:3/4;object-fit:cover;background:#f7f8f6;
-    box-shadow:0 0 0 .5px rgba(68,71,76,.12), 0 2px 10px rgba(68,71,76,.06)}
-  #solo time{margin-top:16px;font-size:9px;letter-spacing:.2em;color:var(--faint)}
-  .sheet{position:relative;width:var(--sw);aspect-ratio:3/4;background:#f7f8f6;
-    box-shadow:0 0 0 .5px rgba(68,71,76,.10), 0 1px 3px rgba(68,71,76,.04);
-    opacity:0;transform:translateY(10px);transition:opacity 1.2s ease, transform 1.2s ease}
-  .sheet.seen{opacity:1;transform:none}
-  .sheet + .sheet{margin-top:-1px}
+  .item{scroll-snap-align:start}
+  /* 장 사이 기록 한 줄: 번호 · 실땀 · 날짜 */
+  .label{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+    border-top:1px solid var(--line);font-size:10px;font-weight:300;letter-spacing:.16em;color:var(--ink);
+    font-variant-numeric:tabular-nums;background:var(--paper)}
+  .label time{color:var(--faint)}
+  .sheet{position:relative;width:100%;aspect-ratio:3/4;background:#f7f8f6;overflow:hidden}
+  /* 기록 줄과 장이 맞닿은 선: 멀리선 그냥 선, 가까이 보면 남색 실의 홈질 */
+  .sheet::before,.next::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;z-index:2;
+    background:repeating-linear-gradient(90deg,rgba(40,62,104,.5) 0 3.2px,rgba(40,62,104,.14) 3.2px 4.6px)}
   .sheet img.pic{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .sheet img.strip{position:absolute;left:0;right:0;bottom:0;width:100%;height:12%;object-fit:cover;object-position:50% 100%}
-  .sheet time{position:absolute;right:-4px;bottom:6px;transform:translateX(100%);padding-left:8px;
-    font-size:8px;letter-spacing:.12em;color:var(--faint);writing-mode:vertical-rl;opacity:.8}
-  /* 맨 끝 장은 얇은 천에 덮여 아래 가장자리 한 줄만 비친다 */
-  .veil{position:absolute;left:-1px;right:-1px;top:-1px;bottom:12%;
-    background:rgba(242,243,241,.9);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
-    transition:opacity 1.8s cubic-bezier(.4,0,.2,1), transform 2.2s cubic-bezier(.3,0,.2,1), filter 1.8s ease}
-  .veil::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:6px;
-    background:linear-gradient(rgba(242,243,241,.9),rgba(242,243,241,0))}
-  .veil.lift{opacity:0;transform:translateY(-6%) scale(1.02);filter:blur(3px);pointer-events:none}
-  svg.seams{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-  /* 다음 자리: 비어 있다 */
-  .next{position:relative;width:var(--sw);aspect-ratio:3/4;margin-top:-1px;cursor:pointer}
-  .next::before{content:"";position:absolute;inset:0;border:.5px dashed rgba(162,167,172,.55)}
-  @keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg)}}
+  /* 맨 끝 장: 종이를 접어 가린다 — 아래 12%만 남기고, 접힌 선이 또렷하게 */
+  .fold{position:absolute;left:0;right:0;top:0;bottom:12%;background:#eceeeb;transform-origin:50% 100%;
+    transition:transform .38s cubic-bezier(.5,0,.2,1)}
+  .fold::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:rgba(68,71,76,.45);
+    box-shadow:0 1px 0 rgba(255,255,255,.7), 0 3px 4px rgba(68,71,76,.10)}
+  .fold.lift{transform:scaleY(0)}
+  /* 다음 자리 */
+  .next{position:relative;width:100%;aspect-ratio:3/4;cursor:pointer}
+  .next svg{position:absolute;right:22%;top:0;width:40px;height:170px;overflow:visible}
+  /* 한 장만 */
+  #solo{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--paper);opacity:0;pointer-events:none;transition:opacity .18s linear}
+  body.solo #solo{opacity:1;pointer-events:auto}
+  #solo img{width:100vw;max-width:480px;aspect-ratio:3/4;object-fit:cover;background:#f7f8f6;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  #solo .meta{width:100vw;max-width:480px;display:flex;justify-content:space-between;padding:10px 18px;
+    font-size:10px;font-weight:300;letter-spacing:.16em;color:var(--ink);font-variant-numeric:tabular-nums}
+  #solo .meta time{color:var(--faint)}
 
   /* 한 장 놓기: 앞 장의 아래 한 줄만 보고 잇는다 */
   #compose{position:fixed;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column;
-    align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .8s ease;
+    align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s linear;
     --pw:min(84vw, calc((100svh - 210px) * .75))}
   body.composing #compose{opacity:1;pointer-events:auto}
   .cstrip{display:block;width:var(--pw);aspect-ratio:750/120;object-fit:cover;opacity:.9}
@@ -86,7 +86,7 @@
 
   /* 잠금: 얇은 종이 한 장 */
   #lock{position:fixed;inset:0;background:var(--paper);
-    transition:opacity 2.2s cubic-bezier(.4,0,.2,1) .3s, transform 2.6s cubic-bezier(.3,0,.2,1) .3s, filter 2.2s ease .3s}
+    transition:opacity .9s cubic-bezier(.5,0,.2,1) .15s, transform 1s cubic-bezier(.5,0,.2,1) .15s, filter .9s ease .15s}
   /* 종이 결: 고운 입자 + 가장자리가 아주 살짝 어두운 빛 */
   #lock::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .44  0 0 0 0 .47  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
@@ -115,7 +115,7 @@
 </head>
 <body>
 
-<main id="app"><h1>n.n.</h1><div id="chain"></div><div class="by">tu.:na.</div></main>
+<main id="app"><header class="bar"><span>n.n.</span><span class="cnt"></span><span>tu.:na.</span></header><div id="chain"></div></main>
 
 <div id="compose">
   <button class="cclose" aria-label="닫기">×</button>

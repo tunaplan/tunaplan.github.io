@@ -29,95 +29,53 @@
   let rows = [], lastId = null, lifting = null;
   const r = (a,b) => a + (b-a)*Math.random();
 
+  const pad3 = n => String(n).padStart(3,'0');
+  const cnt = document.querySelector('.bar .cnt');
+
+  // 안쪽은 규칙: 꽉 찬 장, 번호와 날짜, 1px 선. 기울임·흐림·느린 등장 없음.
   function render(){
     chain.innerHTML = '';
     rows.forEach((row, i) => {
       const last = i === rows.length-1;
+      const it = document.createElement('section'); it.className = 'item';
+      it.innerHTML = `<div class="label"><span>${pad3(i+1)}</span><time>${row.d}</time></div>`;
       const s = document.createElement('div'); s.className = 'sheet' + (last ? ' last' : '');
-      const h = (row.id * 2654435761) % 1000 / 1000;          // 장마다 정해진 작은 어긋남
-      s.style.left = ((h-.5)*20).toFixed(1)+'px';
-      s.style.rotate = ((((h*7)%1)-.5)*1.4).toFixed(2)+'deg';
       const im = new Image(); im.decoding = 'async'; im.src = row.img; im.alt = '';
       im.className = last ? 'strip' : 'pic';
       s.appendChild(im);
-      const t = document.createElement('time'); t.textContent = row.d; s.appendChild(t);
-      if(last){ const v = document.createElement('div'); v.className = 'veil'; s.appendChild(v); }
-      if(row.id === lifting){                                    // 방금 걷힌 장
-        const v = document.createElement('div'); v.className = 'veil'; s.appendChild(v);
-        setTimeout(()=>v.classList.add('lift'), 500); setTimeout(()=>v.remove(), 3000);
+      if(last){ const f = document.createElement('div'); f.className = 'fold'; s.appendChild(f); }
+      if(row.id === lifting){                                    // 방금 펼쳐진 장
+        const f = document.createElement('div'); f.className = 'fold'; s.appendChild(f);
+        setTimeout(()=>f.classList.add('lift'), 350); setTimeout(()=>f.remove(), 900);
       }
-      chain.appendChild(s);
+      it.appendChild(s); chain.appendChild(it);
     });
-    const next = document.createElement('div'); next.className = 'next' + (canPlace ? ' open' : '');
+    cnt.textContent = rows.length ? pad3(rows.length) : '';
+    const it = document.createElement('section'); it.className = 'item';
+    it.innerHTML = `<div class="label"><span>${pad3(rows.length+1)}</span><time></time></div>`;
+    const next = document.createElement('div'); next.className = 'next';
+    if(canPlace){                                                // 바늘이 빈 자리로 늘어져 있다
+      next.innerHTML = `<svg viewBox="0 0 40 170"><path d="M20 0 Q12 70 26 120" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
+        `<line x1="22" y1="112" x2="29" y2="150" stroke="#a9aeb3" stroke-width="1.3" stroke-linecap="round"/></svg>`;
+    }
     next.addEventListener('click', ()=>{
       if(canPlace) return openCompose();
-      if(DEMO){                                         // 예시: 다음 장이 놓인 순간처럼 마지막 천을 걷는다
+      if(DEMO){                                                  // 예시: 다음 장이 놓인 순간처럼 마지막 장을 펼친다
         const ls = chain.querySelector('.sheet.last'); if(!ls) return;
-        const v = ls.querySelector('.veil'); ls.querySelector('img').className = 'pic';
-        v && v.classList.add('lift');
+        ls.querySelector('img').className = 'pic';
+        const f = ls.querySelector('.fold'); f && f.classList.add('lift');
       }
     });
-    chain.appendChild(next);
-    const seams = document.createElementNS(NS,'svg'); seams.setAttribute('class','seams');
-    chain.appendChild(seams);
-    requestAnimationFrame(()=>{ stitch(seams); watch(); whenOpened(intro); });
-  }
-
-  // 실: 맞닿은 자리를 꿰매고, 놓을 수 있는 사람에게만 빈 자리로 바늘이 늘어진다
-  // 실 한 가닥: 첫 장부터 끝 장까지 가장자리를 홈질하듯 들락날락 꿰어 내려간다.
-  // 서로 다른 목소리들이 한 줄로 묶여 함께 울린다. 맞닿은 자리는 감침질로 한 번 더.
-  function stitch(seams){
-    seams.innerHTML = '';
-    const sh = [...chain.querySelectorAll('.sheet')];
-    const next = chain.querySelector('.next');
-    const w = chain.clientWidth, x0 = -9;   // 실은 장 바깥 가장자리로 — 누구의 장도 가리지 않는다
-    const xs = y => x0 + Math.sin(y/70)*2.4 + Math.sin(y/23)*.8;
-    let html = '';
-    let yEnd = next ? next.offsetTop : 0;
-    if(sh.length){
-      const y1 = sh[0].offsetTop + 16;
-      let d = '';
-      for(let y=y1; y<=yEnd; y+=6) d += (d?' L':'M') + xs(y).toFixed(1) + ' ' + y.toFixed(1);
-      html += `<path d="${d}" fill="none" stroke="${IND}" stroke-width="1.35" stroke-linecap="round" stroke-dasharray="9 7" opacity=".82"/>`;
-      html += `<path d="${d}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width=".6" stroke-dasharray="2 3 4 7" opacity=".9"/>`;
-      for(let i=1;i<sh.length;i++){
-        const y = sh[i].offsetTop;
-        for(let k=0;k<3;k++){
-          const x = xs(y) + 4 + k*6;
-          html += `<line x1="${(x-2.5).toFixed(1)}" y1="${y-5}" x2="${(x+2.5).toFixed(1)}" y2="${y+5}" stroke="${IND}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>`;
-        }
-      }
-    }
-    seams.innerHTML = html;
-    if(!next) return;
-    const ex = xs(yEnd), ey = yEnd;
-    const g = document.createElementNS(NS,'g');
-    if(canPlace){                                   // 바늘이 빈 자리로 늘어져 다음 사람을 기다린다
-      g.innerHTML =
-        `<path d="M${ex} ${ey} Q${ex-10} ${ey+70} ${ex+8} ${ey+120}" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
-        `<line x1="${ex+4}" y1="${ey+112}" x2="${ex+11}" y2="${ey+150}" stroke="#a9aeb3" stroke-width="1.3" stroke-linecap="round"/>`;
-      g.style.animation = 'sway 7s ease-in-out infinite';
-    } else if(sh.length){                           // 놓을 수 없는 사람에겐 풀린 실 끝만
-      g.innerHTML = `<path d="M${ex} ${ey} Q${ex-4} ${ey+12} ${ex+2} ${ey+24}" fill="none" stroke="${IND}" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>`;
-    }
-    g.style.transformOrigin = `${ex}px ${ey}px`;
-    seams.appendChild(g);
+    it.appendChild(next); chain.appendChild(it);
   }
 
   /* 물러서서 전체 보기: 두 손가락으로 오므리면 한 폭으로, 벌리거나 한 장을 누르면 다시 가까이 */
   function farScale(){
-    const nx = chain.querySelector('.next'); if(!nx) return 1;
-    const H = nx.offsetTop + nx.offsetHeight;
-    const avail = innerHeight - chain.getBoundingClientRect().top - 40 + app.scrollTop;
-    return Math.max(.08, Math.min(1, avail / H));
+    const H = chain.scrollHeight - parseFloat(getComputedStyle(chain).paddingBottom);
+    return Math.max(.06, Math.min(1, (innerHeight - 44 - 24) / H));
   }
-  function setFar(on, instant){
-    if(on){
-      chain.querySelectorAll('.sheet').forEach(s=>s.classList.add('seen'));
-      chain.style.setProperty('--fs', farScale());
-      app.scrollTo({top:0, behavior: instant ? 'auto' : 'smooth'});
-    }
-    if(instant){ chain.style.transition = 'none'; requestAnimationFrame(()=>requestAnimationFrame(()=>chain.style.transition = '')); }
+  function setFar(on){
+    if(on){ chain.style.setProperty('--fs', farScale()); app.scrollTo({top:0}); }
     document.body.classList.toggle('far', on);
   }
   let pinch0 = 0;
@@ -125,50 +83,32 @@
   app.addEventListener('touchstart', e=>{ if(e.touches.length===2) pinch0 = dist(e.touches); }, {passive:true});
   app.addEventListener('touchmove', e=>{
     if(e.touches.length!==2 || !pinch0) return;
-    const r = dist(e.touches)/pinch0;
-    if(r < .78 && !document.body.classList.contains('far')){ setFar(true); pinch0 = 0; }
-    else if(r > 1.25 && document.body.classList.contains('far')){ setFar(false); pinch0 = 0; }
+    const k = dist(e.touches)/pinch0;
+    if(k < .78 && !document.body.classList.contains('far')){ setFar(true); pinch0 = 0; }
+    else if(k > 1.25 && document.body.classList.contains('far')){ setFar(false); pinch0 = 0; }
   }, {passive:true});
   chain.addEventListener('click', e=>{
     if(!document.body.classList.contains('far')) return;
-    const s = e.target.closest('.sheet, .next');
-    e.stopPropagation();
-    setFar(false);
-    if(s) setTimeout(()=>s.scrollIntoView({behavior:'smooth', block:'start'}), 900);
+    const it = e.target.closest('.item');
+    e.stopPropagation(); setFar(false);
+    if(it) setTimeout(()=>it.scrollIntoView({block:'start'}), 520);
   }, true);
 
-  /* 한 장만: 가까이서 한 장을 누르면 그 장 혼자 화면에 선다. 이웃도 실도 물러난다. */
+  /* 한 장만: 가까이서 한 장을 누르면 그 장 혼자 선다. 번호와 날짜만 곁에. */
   const solo = document.createElement('div'); solo.id = 'solo';
-  solo.innerHTML = '<img alt=""><time></time>';
+  solo.innerHTML = '<img alt=""><div class="meta"><span></span><time></time></div>';
   document.body.appendChild(solo);
   chain.addEventListener('click', e=>{
     if(document.body.classList.contains('far')) return;
     const s = e.target.closest('.sheet'); if(!s || s.classList.contains('last')) return;
     const im = s.querySelector('img.pic'); if(!im) return;
+    const lab = s.parentElement.querySelector('.label');
     solo.querySelector('img').src = im.src;
-    solo.querySelector('time').textContent = s.querySelector('time').textContent;
+    solo.querySelector('.meta span').textContent = lab.querySelector('span').textContent;
+    solo.querySelector('.meta time').textContent = lab.querySelector('time').textContent;
     document.body.classList.add('solo');
   });
   solo.addEventListener('click', ()=>document.body.classList.remove('solo'));
-
-  // 처음 들어올 때: 먼저 전체가 한 폭으로 보이고, 천천히 첫 장으로 다가간다
-  let introDone = false;
-  function intro(){
-    if(introDone || chain.querySelectorAll('.sheet').length < 2) return;
-    introDone = true;
-    setFar(true, true);
-    setTimeout(()=>setFar(false), 2600);
-  }
-  function whenOpened(fn){
-    if(document.body.classList.contains('opened')) return fn();
-    new MutationObserver((_, o)=>{ if(document.body.classList.contains('opened')){ o.disconnect(); setTimeout(fn, 900); } })
-      .observe(document.body, {attributes:true, attributeFilter:['class']});
-  }
-
-  const io = new IntersectionObserver(es=>es.forEach(e=>{
-    if(e.isIntersecting){ e.target.classList.add('seen'); io.unobserve(e.target); }
-  }), {root:app, threshold:.12});
-  const watch = () => chain.querySelectorAll('.sheet:not(.seen)').forEach(s=>io.observe(s));
 
   const DEMO = /[?&]demo/.test(location.search) && window.NN_DEMO;
   async function load(){
@@ -258,7 +198,7 @@
       navigator.vibrate && navigator.vibrate(15);
       lifting = prev;
       closeCompose(); await load(); lifting = null;
-      setTimeout(()=>{ const n = chain.querySelector('.next'); n && n.scrollIntoView({behavior:'smooth', block:'center'}); }, 300);
+      setTimeout(()=>{ const its = chain.querySelectorAll('.item'); const t = its[Math.max(0, its.length-3)]; t && t.scrollIntoView({block:'start'}); }, 60);   // 방금 펼쳐진 앞 장으로
     }catch(e){
       const m = String(e.message||'');
       if(m.includes('moved')){
@@ -279,7 +219,7 @@
     if(prev){ cStrip.src = prev.img; cStrip.style.display = ''; }
   }
 
-  addEventListener('resize', ()=>{ const s = chain.querySelector('svg.seams'); s && stitch(s); });
+  
 
   (async ()=>{
     if(key && !DEMO){ try{ canPlace = !!(await rpc('can_place', {k:key})); }catch(e){ canPlace = false; } }
