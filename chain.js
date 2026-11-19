@@ -32,6 +32,8 @@
   const {edgeOf, cellOf, edgeURL} = window.NN_EDGE;
   const formOf = r => (r && r.form) || 'line';
   const GIFT = window.NN_GIFT;
+  // 이 폰의 표식(되돌리기용) — 이름이 아니다
+  const OWNER = (()=>{ try{ let o = localStorage.getItem('nn-owner'); if(!o){ o = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('nn-owner', o); } return o; }catch(e){ return null; } })();
   const nowAt = () => { const d = new Date(), p = n => String(n).padStart(2,'0');
     return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
   // 내 엽서 데이터: 폭·번호·이미지·내가 본 한 줄·소인 시각들
@@ -118,12 +120,12 @@
     // 진행 중인 폭
     const no = (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1;   // 다음 폭의 id
     const head = document.createElement('div'); head.className = 'roll current';
-    head.innerHTML = `<span>폭 ${board.open ? rno(board.open.id) : rno(no)}</span><em></em><time>${size ? pad2(rows.length)+' / '+pad2(size) : ''}</time>`;
+    head.innerHTML = `<span>폭 ${board.open ? rno(board.open.id) : rno(no)}</span><em></em><time>${rows.length ? pad2(rows.length) + '장' : ''}</time>`;
     chain.appendChild(head);
-    const form = board.open ? formOf(board.open) : 'snake';
+    const form = board.open && rows.length ? formOf(board.open) : 'line';
     if(form === 'snake') return renderSnakeMake(form);
     rows.forEach((row, i) => chain.appendChild(sheetItem(row, i === rows.length-1)));
-    cnt.textContent = size ? `${pad2(rows.length)} / ${pad2(size)}` : '';
+
     const it = document.createElement('section'); it.className = 'item';
     it.innerHTML = `<div class="label"><span>${pad2(rows.length+1)}</span><em></em><time class="heldt"></time></div>`;
     const next = document.createElement('div'); next.className = 'next';
@@ -157,8 +159,7 @@
     return next;
   }
   function renderSnakeMake(form){
-    const full = size && rows.length >= size;
-    chain.appendChild(snake(rows, form, {foldLast:true, slot: full ? null : nextSlot()}));
+    chain.appendChild(snake(rows, form, {foldLast:true, slot: nextSlot()}));
   }
   // 만들어진 것: 닫힌 폭들 — 누구나 본다. 모두 펼쳐진 채로.
   function renderMade(){
@@ -314,20 +315,34 @@
 
   /* 한 장만: 가까이서 한 장을 누르면 그 장 혼자 선다. 번호와 날짜만 곁에. */
   const solo = document.createElement('div'); solo.id = 'solo';
-  solo.innerHTML = '<img alt=""><div class="meta"><span></span><time></time></div><button class="mycard">내 엽서</button>';
+  solo.innerHTML = '<img alt=""><div class="meta"><span></span><time></time></div><button class="mycard">내 엽서</button><button class="undo">되돌리기</button>';
   document.body.appendChild(solo);
   chain.addEventListener('click', e=>{
     if(document.body.classList.contains('far')) return;
-    const s = e.target.closest('.sheet'); if(!s || s.classList.contains('last')) return;
-    const im = s.querySelector('img.pic'); if(!im) return;
-    solo.querySelector('img').src = im.src;
+    const s = e.target.closest('.sheet'); if(!s) return;
+    let src;
+    if(s.classList.contains('last')){                     // 접힌 맨 끝 장: 내 것일 때만, 이 폰이 기억하는 원본으로
+      const k = GIFT.mine.has(+s.dataset.id) && GIFT.mine.kept(+s.dataset.id);
+      if(!k) return; src = k.img;
+    } else { const im = s.querySelector('img.pic'); if(!im) return; src = im.src; }
+    solo.querySelector('img').src = src;
     solo.querySelector('.meta span').textContent = s.dataset.n + (s.dataset.t ? '   ' + s.dataset.t : '');
     solo.querySelector('.meta time').textContent = s.dataset.at;
     solo.classList.toggle('ismine', GIFT.mine.has(+s.dataset.id));
+    const lastOpen = board.open && rows.length && rows[rows.length-1].id === +s.dataset.id;
+    solo.classList.toggle('canundo', !!(lastOpen && GIFT.mine.has(+s.dataset.id)));
+    solo.querySelector('.undo').classList.remove('sure'); solo.querySelector('.undo').textContent = '되돌리기';
     solo.dataset.id = s.dataset.id;
     document.body.classList.add('solo');
   });
   solo.addEventListener('click', async e => {
+    if(e.target.classList.contains('undo')){           // 두 번 눌러야 거둔다
+      e.stopPropagation();
+      const u = e.target;
+      if(!u.classList.contains('sure')){ u.classList.add('sure'); u.textContent = '정말 거두기'; return; }
+      try{ await rpc('undo', {pid: +solo.dataset.id, powner: OWNER}); }catch(err){ u.textContent = '이미 이어졌어요'; return; }
+      document.body.classList.remove('solo'); await load(); return;
+    }
     if(e.target.classList.contains('mycard')){
       e.stopPropagation();
       const id = +solo.dataset.id, roll = [board.open, ...board.closed].find(r => r && (r.sheets||[]).some(x => x.id === id));
@@ -359,13 +374,16 @@
   const note = cp.querySelector('.cnote'), file = cp.querySelector('input[type=file]');
   const ictx = ink.getContext('2d');
   let photo = null, inked = false, busy = false;
-  let strokes = [], t0 = 0, stroke = null, pick = 6;     // 책을 위해: 획의 순서·좌표·시간을 그대로
+  let strokes = [], t0 = 0, stroke = null;     // 책을 위해: 획의 순서·좌표·시간을 그대로
   const cTitle = cp.querySelector('.ctitle'), cRoll = cp.querySelector('.crolltitle'), cNo = cp.querySelector('.cno');
-  let pickForm = 'snake';
+  let pickForm = 'line';
+  // 여기서 마치기: 이 장으로 폭을 닫고 이름을 짓는다 (장 수 제한 없음)
+  cp.querySelector('.endtoggle').addEventListener('click', ()=>cp.classList.toggle('final'));
   cp.querySelectorAll('.cform b').forEach(b => b.addEventListener('click', ()=>{
     cp.querySelectorAll('.cform b').forEach(x => x.classList.toggle('on', x === b)); pickForm = b.dataset.f;
   }));
-  const curForm = () => board.open ? formOf(board.open) : pickForm;
+  const isFirst = () => !board.open || !rows.length;
+  const curForm = () => isFirst() ? pickForm : formOf(board.open);
   function stageStrip(){                       // 앞 장의 가장자리를 맞닿는 쪽에: 아래 → 위에, 오른쪽 → 왼쪽 옆에, 왼쪽 → 오른쪽 옆에
     const prev = rows[rows.length-1], st = cp.querySelector('.cstage');
     st.className = 'cstage';
@@ -374,9 +392,7 @@
     st.classList.add(e === 'bottom' ? 'from-top' : e === 'right' ? 'from-left' : 'from-right');
     cStrip.src = prev.img; cStrip.style.display = '';
   }
-  cp.querySelectorAll('.csize b').forEach(b => b.addEventListener('click', ()=>{
-    cp.querySelectorAll('.csize b').forEach(x => x.classList.toggle('on', x === b)); pick = +b.dataset.n;
-  }));
+
 
   function sizeInk(){
     const rc = paper.getBoundingClientRect(), d = Math.min(3, devicePixelRatio||1);
@@ -400,9 +416,9 @@
     }
     note.textContent = '';
     stageStrip();
-    const first = !board.open, n = rows.length + 1, total = first ? pick : size;
+    const first = isFirst(), n = rows.length + 1;
     cp.classList.toggle('first', first);
-    cp.classList.toggle('final', !first && n === size);
+    cp.classList.remove('final');
     cNo.textContent = pad2(n); cTitle.value = ''; cRoll.value = ''; t0 = performance.now();
     document.body.classList.add('composing');
     requestAnimationFrame(()=>{ sizeInk(); clearAll(); });
@@ -515,18 +531,21 @@
     do { out = compose(q); q -= .1; } while(out.img.length > 680000 && q > .3);
     try{
       const prev = lastId;
-      const res = await rpc('place4', {
+      const ending = cp.classList.contains('final');
+      const res = await rpc('place6', {
         k:key, ptoken:token, after_id:lastId, pimg:out.img, pstrip:out.strip,
         ptitle: cTitle.value.trim() || null,
-        psize: board.open ? null : pick,
-        pform: board.open ? null : pickForm,
-        proll: cp.classList.contains('final') ? (cRoll.value.trim() || null) : null,
+        pform: isFirst() ? pickForm : null,
+        pend: ending,
+        proll: ending ? (cRoll.value.trim() || null) : null,
         pstrokes: strokes.length ? strokes : null,
-        pphoto: original()
+        pphoto: original(),
+        powner: OWNER
       });
       navigator.vibrate && navigator.vibrate(res && res.closed ? [15,60,15] : 15);
       // 보상: 방금 놓은 장 → 번호 매긴 엽서
-      const roll0 = board.open || {id: (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1, size: pick, form: pickForm, sheets: []};
+      const roll0 = Object.assign({}, board.open || {id: (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1, sheets: []},
+        {form: curForm(), size: res && res.closed ? rows.length + 1 : null});
       const prevRow = rows[rows.length-1];
       const seenUrl = prevRow ? await edgeURL(prevRow.img, edgeOf(prevRow.n, formOf(roll0)), true) : null;
       const wsheets = rows.map((x, i) => ({id: x.id, n: x.n, img: x.img, folded: i === rows.length-1}))   // 앞 장은 아직 접힌 채

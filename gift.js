@@ -48,11 +48,11 @@ window.NN_GIFT = (function(){
   function open(d){
     cur = d;
     front.innerHTML = `<div class="g-pic"><img src="${d.img}" alt=""></div>
-      <div class="g-cap"><span>폭 ${d.rollNo} · ${pad2(d.n)}/${pad2(d.size)}</span><em>${esc(d.title)}</em><time>${esc(d.at)}</time></div>`;
-    const W = d.whole ? window.NN_EDGE.whole(d.whole.sheets, d.whole.size, d.whole.form, d.id, 'var(--mm)') : '';
+      <div class="g-cap"><span>폭 ${d.rollNo} · ${pad2(d.n)}${d.size ? '/' + pad2(d.size) : ''}</span><em>${esc(d.title)}</em><time>${esc(d.at)}</time></div>`;
+    const W = d.whole ? window.NN_EDGE.whole(d.whole.sheets, d.whole.size || d.whole.sheets.length, d.whole.form, d.id, 'var(--mm)') : '';
     back.innerHTML = `${W}
       <div class="g-rule"></div>
-      <div class="g-rec"><b>${pad2(d.n)}<small>/${pad2(d.size)}</small></b>${esc(d.title) ? esc(d.title) + '<br>' : ''}<span>폭 ${d.rollNo}</span></div>
+      <div class="g-rec"><b>${pad2(d.n)}${d.size ? `<small>/${pad2(d.size)}</small>` : ''}</b>${esc(d.title) ? esc(d.title) + '<br>' : ''}<span>폭 ${d.rollNo}</span></div>
       <div class="g-pms">${postmark('보냄', d.at, -8)}${d.got ? postmark('받음', d.got, 11) : '<i class="g-stamp"></i>'}</div>
       <div class="g-to"><span>받는 이</span> n.n.</div>`;
     pc.classList.remove('flip');
@@ -105,7 +105,7 @@ window.NN_GIFT = (function(){
     cover(x, await load(d.img), px, py, pw, ph);
     x.strokeStyle = 'rgba(68,71,76,.12)'; x.lineWidth = 1; x.strokeRect(px, py, pw, ph);
     const capY = cy + ch - cw*.08;
-    text(x, `폭 ${d.rollNo} · ${pad2(d.n)}/${pad2(d.size)}`, px, capY, 26, INK, 300, 'left', 4);
+    text(x, `폭 ${d.rollNo} · ${pad2(d.n)}${d.size ? '/' + pad2(d.size) : ''}`, px, capY, 26, INK, 300, 'left', 4);
     if(d.title) text(x, d.title, px + 250, capY, 26, INK, 300, 'left', 1);
     text(x, d.at || '', px + pw, capY, 22, FAINT, 300, 'right', 2);
     // 모서리 구멍
