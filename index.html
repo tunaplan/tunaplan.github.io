@@ -63,6 +63,48 @@
   /* 다음 자리 */
   .next{position:relative;width:100%;aspect-ratio:3/4;cursor:pointer}
   .next svg{position:absolute;right:22%;top:0;width:40px;height:170px;overflow:visible}
+  /* 책: 닫힌 폭을 엽서 크기 책처럼 — 표지부터 한 쪽씩 옆으로. 흑백. */
+  .roll.closed{cursor:pointer}
+  .roll .bk{flex:none;color:var(--faint);font-size:10px;letter-spacing:.2em;margin-left:10px}
+  #book{position:fixed;inset:0;z-index:16;background:#e9eae7;opacity:0;pointer-events:none;transition:opacity .18s linear;
+    --pw:min(80vw, calc((100svh - 130px) * 100 / 148))}
+  body.reading #book{opacity:1;pointer-events:auto}
+  #book .pages{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  #book .pages::-webkit-scrollbar{display:none}
+  #book .pg{flex:none;width:100vw;height:100%;display:flex;align-items:center;justify-content:center;scroll-snap-align:center}
+  .card{position:relative;width:var(--pw);aspect-ratio:100/148;background:#f7f8f6;
+    box-shadow:0 0 0 .5px rgba(68,71,76,.16), 0 2px 10px rgba(68,71,76,.08);
+    color:var(--ink);font-weight:300;font-variant-numeric:tabular-nums;overflow:hidden}
+  .card img{filter:grayscale(1) contrast(1.02)}
+  .card .tl,.card .tr,.card .bl,.card .br{position:absolute;font-size:calc(var(--pw) * .028);letter-spacing:.16em}
+  .card .tl{left:7%;top:5.5%} .card .tr{right:7%;top:5.5%;color:var(--faint)}
+  .card .bl{left:7%;bottom:5%} .card .br{right:7%;bottom:5%;color:var(--faint)}
+  /* 표지: 각자가 본 것(앞 장의 끝 한 줄)만 모아 쌓는다 */
+  .cover .stack{position:absolute;left:12%;right:12%;top:20%;display:flex;flex-direction:column;gap:calc(var(--pw) * .012)}
+  .cover .stack div{width:100%;aspect-ratio:750/120;overflow:hidden;background:#eef0ed}
+  .cover .stack img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+  .cover .ttl{position:absolute;left:12%;right:12%;bottom:15%;font-size:calc(var(--pw) * .05);font-weight:200;letter-spacing:.04em;line-height:1.4}
+  .cover .ttl small{display:block;margin-top:.7em;font-size:.5em;letter-spacing:.16em;color:var(--faint);font-weight:300}
+  /* 본 것: 빈 엽서 맨 위에 그 사람이 본 한 줄만 */
+  .seen .edge{position:absolute;left:7%;right:7%;top:9%;aspect-ratio:750/120;overflow:hidden}
+  .seen .edge img{width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+  /* 그린 것: 장 + 기록 한 줄 */
+  .made .pic{position:absolute;left:7%;right:7%;top:7%;aspect-ratio:3/4;overflow:hidden;background:#f7f8f6;
+    box-shadow:0 0 0 .5px rgba(68,71,76,.14)}
+  .made .pic img{width:100%;height:100%;object-fit:cover}
+  .made .rec{position:absolute;left:7%;right:7%;bottom:7%;display:flex;gap:1.2em;align-items:baseline;
+    font-size:calc(var(--pw) * .03);letter-spacing:.12em}
+  .made .rec em{flex:1;font-style:normal;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .made .rec time{color:var(--faint)}
+  /* 판권 */
+  .colo .txt{position:absolute;left:12%;right:12%;bottom:14%;font-size:calc(var(--pw) * .03);line-height:2;letter-spacing:.1em}
+  .colo .txt span{color:var(--faint)}
+  #book .bx{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:12px;z-index:2;background:none;border:0;
+    font:inherit;font-size:22px;font-weight:200;color:var(--faint);padding:8px;cursor:pointer}
+  #book .pn{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 16px);left:0;right:0;text-align:center;
+    font-size:10px;letter-spacing:.2em;color:var(--faint);font-variant-numeric:tabular-nums;pointer-events:none}
+
   /* 한 장만 */
   #solo{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;
     background:var(--paper);opacity:0;pointer-events:none;transition:opacity .18s linear}
@@ -136,6 +178,8 @@
 <body>
 
 <main id="app"><header class="bar"><span>n.n.</span><span class="cnt"></span><span>tu.:na.</span></header><div id="chain"></div></main>
+
+<div id="book"><button class="bx" aria-label="닫기">×</button><div class="pages"></div><div class="pn"></div></div>
 
 <div id="compose">
   <button class="cclose" aria-label="닫기">×</button>

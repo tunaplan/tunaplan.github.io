@@ -76,8 +76,9 @@
     it.appendChild(next); chain.appendChild(it);
     // 닫힌 폭들 — 누구나 본다. 모두 펼쳐진 채로.
     board.closed.forEach(r => {
-      const h = document.createElement('div'); h.className = 'roll';
-      h.innerHTML = `<span>폭 ${pad2(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time>`;
+      const h = document.createElement('div'); h.className = 'roll closed';
+      h.innerHTML = `<span>폭 ${pad2(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="bk">엮음</span>`;
+      h.addEventListener('click', ()=>openBook(r));
       chain.appendChild(h);
       (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
     });
@@ -107,6 +108,40 @@
     e.stopPropagation(); setFar(false);
     if(it) setTimeout(()=>it.scrollIntoView({block:'start'}), 520);
   }, true);
+
+  /* 책: 표지 → (본 것 · 그린 것) × 장 수 → 판권. 엽서 크기, 흑백, 한 쪽씩 옆으로 */
+  const book = document.getElementById('book'), pages = book.querySelector('.pages'), pn = book.querySelector('.pn');
+  const KOR = ['','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열'];
+  function openBook(r){
+    const ss = r.sheets || [], no = pad2(r.id);
+    const period = `${esc(r.from)} — ${esc(r.to)}`;
+    let html = `<div class="pg"><div class="card cover">
+        <div class="tl">n.n.</div><div class="tr">폭 ${no}</div>
+        <div class="stack">${ss.map(x=>`<div><img src="${x.img}" alt=""></div>`).join('')}</div>
+        <div class="ttl">${esc(r.title) || '&nbsp;'}<small>${period} · ${r.size}장</small></div>
+        <div class="br">tu.:na.</div></div></div>`;
+    ss.forEach((x,i)=>{
+      const prev = ss[i-1];
+      html += `<div class="pg"><div class="card seen">${prev ? `<div class="edge"><img src="${prev.img}" alt=""></div>` : ''}
+          <div class="bl">${pad2(x.n)}</div></div></div>`;
+      html += `<div class="pg"><div class="card made"><div class="pic"><img src="${x.img}" alt=""></div>
+          <div class="rec"><span>${pad2(x.n)}</span><em>${esc(x.title)}</em><time>${esc(x.at)}</time></div></div></div>`;
+    });
+    html += `<div class="pg"><div class="card colo"><div class="tl">n.n.</div>
+        <div class="txt">폭 ${no}<br>${esc(r.title) || '<span>이름 없음</span>'}<br><span>${period}</span><br>${r.size}장 · <span>이름 모를 ${KOR[r.size]||r.size}</span><br><br><span>n.n. — 비워 둔 이름</span></div>
+        <div class="br">tu.:na.</div></div></div>`;
+    pages.innerHTML = html; pages.scrollLeft = 0;
+    const total = pages.children.length;
+    const upd = ()=>{ pn.textContent = `${pad2(Math.round(pages.scrollLeft / innerWidth) + 1)} / ${pad2(total)}`; };
+    pages.onscroll = upd; upd();
+    document.body.classList.add('reading');
+  }
+  book.querySelector('.bx').addEventListener('click', ()=>document.body.classList.remove('reading'));
+  pages.addEventListener('click', e=>{                       // 왼쪽 끝/오른쪽 끝을 누르면 한 쪽씩
+    const w = innerWidth, x = e.clientX;
+    if(x < w*.18) pages.scrollBy({left:-w, behavior:'smooth'});
+    else if(x > w*.82) pages.scrollBy({left:w, behavior:'smooth'});
+  });
 
   /* 한 장만: 가까이서 한 장을 누르면 그 장 혼자 선다. 번호와 날짜만 곁에. */
   const solo = document.createElement('div'); solo.id = 'solo';
