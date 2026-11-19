@@ -127,7 +127,7 @@
 
 <div id="lock">
   <div class="trace">나의 오랜 친구에게</div>
-  <div class="sig"><b>n.n<span id="knot">.</span></b></div>
+  <div class="sig"><b><span class="g">n</span><span class="g">.</span><span class="g">n</span><span class="g" id="knot">.</span></b></div>
   <div class="by">tu.:na.</div>
   <canvas id="pad"></canvas>
 </div>
@@ -143,6 +143,9 @@
   let W=0,H=0,dpr=1, knot={x:0,y:0};
   let strokes=[], cur=null, timer=null, state='idle'; // idle | drawing | fail | open
   let failT=0, openT=0, grow=1, tug=0;
+  let needlePos=null, drawn=0, poke=-9;           // 실 끝(바늘귀) 위치, 이어 그린 길이, 엉뚱한 곳을 건드린 때
+  let under=[];                                    // 이름 글자들 아래로 지나는 실의 자리
+  const NEED = () => Math.max(620, Math.min(W, 520) * 2.2);   // 끊기지 않고 이어야 하는 길이
 
   function resize(){
     dpr = Math.min(window.devicePixelRatio||1, 3);
@@ -151,30 +154,61 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const r = knotEl.getBoundingClientRect();
     knot = {x:r.left + r.width*0.5, y:r.bottom - r.height*0.22};
+    // n . n . — 떨어져 보이지만, 천 아래로 실 한 가닥이 글자의 발과 점을 지나 이어져 있다
+    under = [];
+    const gs = [...document.querySelectorAll('.sig .g')];
+    gs.forEach((g,i)=>{
+      const b = g.getBoundingClientRect(), y = b.bottom - b.height*0.22;
+      if(g.textContent==='n'){ under.push({x:b.left+b.width*.2,y}); under.push({x:b.right-b.width*.2,y}); }
+      else under.push({x:b.left+b.width*.5,y});
+    });
+    if(under.length) under.unshift({x:under[0].x-14,y:under[0].y+3});
+  }
+  function underThread(alpha){
+    if(under.length<2) return;
+    ctx.save(); ctx.filter='blur(.35px)';
+    ctx.beginPath(); ctx.moveTo(under[0].x,under[0].y);
+    for(let i=1;i<under.length;i++){
+      const a=under[i-1], b=under[i];
+      ctx.quadraticCurveTo((a.x+b.x)/2, Math.max(a.y,b.y)+5, b.x, b.y);   // 천 아래로 살짝 처지며
+    }
+    ctx.strokeStyle=rgba(.13*alpha); ctx.lineWidth=.8; ctx.lineCap='round'; ctx.stroke();
+    ctx.restore();
   }
   addEventListener('resize', resize);
   document.fonts && document.fonts.ready.then(resize);
 
   /* ---------- 입력 ---------- */
+  // 실 끝(바늘)을 잡아, 손을 떼지 않고 끊기지 않게 이어가면 열린다.
   cvs.addEventListener('pointerdown', e=>{
-    if(state==='fail'||state==='open') return;
-    clearTimeout(timer);
+    if(state!=='idle') return;
+    const near = needlePos && Math.hypot(e.clientX-needlePos.x, e.clientY-needlePos.y) < 54;
+    if(!near){ poke = performance.now()/1000; return; }            // 다른 곳: 실이 바람결에 한 번 출렁일 뿐
     cvs.setPointerCapture(e.pointerId);
-    cur=[{x:e.clientX,y:e.clientY}]; strokes.push(cur); state='drawing';
+    cur=[{x:needlePos.x,y:needlePos.y},{x:e.clientX,y:e.clientY}]; strokes=[cur]; drawn=0; state='drawing';
     navigator.vibrate && navigator.vibrate(4);
   });
-  let lastBuzz=0;
   cvs.addEventListener('pointermove', e=>{
-    if(!cur) return;
+    if(!cur || state!=='drawing') return;
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for(const c of evs){
-      const l=cur[cur.length-1];
-      if(Math.hypot(c.clientX-l.x,c.clientY-l.y)>1.5) cur.push({x:c.clientX,y:c.clientY});
+      const l=cur[cur.length-1], d=Math.hypot(c.clientX-l.x,c.clientY-l.y);
+      if(d>1.5){ cur.push({x:c.clientX,y:c.clientY}); drawn+=d; }
     }
+    if(drawn >= NEED()) open();
   });
-  const end=()=>{ if(!cur) return; cur=null; timer=setTimeout(check, 700); };
+  const end=()=>{ if(!cur || state!=='drawing') return; cur=null; state='fail'; failT=0;   // 손을 떼면 실이 끊긴다
+    navigator.vibrate && navigator.vibrate([20,40,20]); };
   cvs.addEventListener('pointerup', end);
   cvs.addEventListener('pointercancel', end);
+  function open(){
+    cur=null; state='open'; openT=0;
+    navigator.vibrate && navigator.vibrate(18);
+    setTimeout(()=>{
+      document.body.classList.add('opened');
+      try{ sessionStorage.setItem('tuna-open','1'); }catch(e){}
+    }, 900);
+  }
 
   /* ---------- 그리기 ---------- */
   function spaced(pts, gap){
@@ -265,6 +299,7 @@
   function frame(t){
     ctx.clearRect(0,0,W,H);
     const tt=t/1000;
+    underThread(state==='open' ? 1-openT : 1);
 
     if(state==='fail'){
       failT=Math.min(1,failT+0.022);
@@ -295,11 +330,13 @@
       const e=1-(1-grow)**3;
       // 느긋한 흔들림 + 가끔 한 번씩 이는 바람
       const gust = Math.max(0, Math.sin(tt*0.9 - 1.2)) ** 6 * Math.sin(tt*5.2) * 7;
-      const sway=Math.sin(tt*0.9)*20 + Math.sin(tt*2.1+1)*5 + gust;
+      const pk = Math.max(0, 1-(tt-poke)/1.6);                       // 건드리면 한 번 출렁
+      const sway=Math.sin(tt*0.9)*20 + Math.sin(tt*2.1+1)*5 + gust + pk*pk*Math.sin((tt-poke)*7)*16;
       const len=150*e*(1+0.03*Math.sin(tt*0.6));
       const ex=knot.x+30*e+sway, ey=knot.y-len+Math.abs(sway)*.15;
       const cx=knot.x+38*e+sway*.45, cy=knot.y-len*.45;
       thread(quad(knot.x,knot.y,cx,cy,ex,ey), 1, 1.25);
+      needlePos = {x:ex, y:ey};
       if(e>.3){
         const ang=Math.atan2(ey-cy,ex-cx);           // 실이 나아가는 방향
         const a=(e-.3)/.7;
@@ -310,81 +347,7 @@
     requestAnimationFrame(frame);
   }
 
-  /* ---------- 하트 인식 ---------- */
-  // 하트 템플릿 (화면 좌표, y 아래로)
-  const TEMPLATE = normalize(Array.from({length:120},(_,i)=>{
-    const t = i/120*Math.PI*2;
-    return {x:16*Math.sin(t)**3, y:-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))};
-  }));
-
-  function resample(pts, n){
-    let len=0; for(let i=1;i<pts.length;i++) len+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
-    if(len===0) return [];
-    const step=len/(n-1), out=[pts[0]]; let acc=0, prev=pts[0];
-    for(let i=1;i<pts.length;i++){
-      let p=pts[i], d=Math.hypot(p.x-prev.x,p.y-prev.y);
-      while(acc+d>=step && d>0){
-        const k=(step-acc)/d, q={x:prev.x+k*(p.x-prev.x), y:prev.y+k*(p.y-prev.y)};
-        out.push(q); prev=q; d=Math.hypot(p.x-prev.x,p.y-prev.y); acc=0;
-      }
-      acc+=d; prev=p;
-    }
-    return out;
-  }
-  function normalize(pts){
-    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-    for(const p of pts){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
-    const w=(x1-x0)||1,h=(y1-y0)||1;
-    return pts.map(p=>({x:(p.x-x0)/w,y:(p.y-y0)/h}));
-  }
-  const nearest=(p,set)=>{let m=Infinity;for(const q of set){const d=(p.x-q.x)**2+(p.y-q.y)**2;if(d<m)m=d;}return Math.sqrt(m);};
-
-  function isHeart(strokes){
-    let raw = strokes.flat();
-    if(raw.length<10) return false;
-    // 너무 작게 그린 건 무시
-    const xs=raw.map(p=>p.x), ys=raw.map(p=>p.y);
-    const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
-    if(w<60||h<60) return false;
-    const ratio=w/h; if(ratio<0.4||ratio>2.6) return false;
-
-    let pts=[]; for(const s of strokes){ if(s.length>1) pts.push(...resample(s, Math.max(8,Math.round(s.length)))); }
-    pts = normalize(resample(pts.length?pts:raw, 128));
-
-    // 1) 위쪽: 가운데가 양옆 볼록한 곳보다 들어가 있어야 함 (하트의 핵심)
-    // 위쪽 윤곽선: x 구간별 가장 위 점
-    const N=20, prof=Array(N).fill(0.65);
-    for(const p of pts) if(p.y<0.65){const k=Math.min(N-1,Math.floor(p.x*N)); prof[k]=Math.min(prof[k],p.y);}
-    let best=0;
-    for(let i=0;i<N;i++) for(let j=i+4;j<N;j++){           // 두 봉우리 i, j
-      let valley=0; for(let k=i+1;k<j;k++) valley=Math.max(valley,prof[k]);
-      best=Math.max(best, valley-Math.max(prof[i],prof[j]));
-    }
-    if(best<0.06) return false;
-
-    // 2) 전체: 대강 하트 느낌이면 통과 (아주 느슨하게)
-    const a = pts.map(p=>nearest(p,TEMPLATE)).sort((x,y)=>x-y);
-    const b = TEMPLATE.map(p=>nearest(p,pts)).sort((x,y)=>x-y);
-    const mean = (a.reduce((s,v)=>s+v,0)/a.length + b.reduce((s,v)=>s+v,0)/b.length)/2;
-    return mean<0.15 && a[a.length>>1]<0.09 && a[Math.floor(a.length*.85)]<0.3;
-  }
-  window.__isHeart = isHeart;
-
-
-  function check(){
-    if(!strokes.length) return;
-    if(isHeart(strokes)){
-      state='open'; openT=0;
-      navigator.vibrate && navigator.vibrate(18);
-      setTimeout(()=>{
-        document.body.classList.add('opened');
-        try{ sessionStorage.setItem('tuna-open','1'); }catch(e){}
-      }, 900);
-    } else {
-      state='fail'; failT=0;
-      navigator.vibrate && navigator.vibrate([25,40,25]);
-    }
-  }
+  window.__lock = { get state(){return state;}, get needle(){return needlePos;}, NEED };
 
   try{ if(sessionStorage.getItem('tuna-open')==='1') document.body.classList.add('opened'); }catch(e){}
   resize();
