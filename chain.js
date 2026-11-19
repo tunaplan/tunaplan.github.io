@@ -30,6 +30,7 @@
   let board = {open:null, closed:[]}, rows = [], size = null, lastId = null, lifting = new Set();
 
   const pad2 = n => String(n).padStart(2,'0');
+  const rno = id => pad2(Math.max(0, id - 1));   // 폭 번호는 00부터: 첫 폭(두 사람이 만드는 폭 00)
   const esc = t => String(t||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const cnt = {set textContent(v){}};
   // 메뉴 셋: 만들기(진행 중인 폭) · 만들어진 것(닫힌 폭들) · 책처럼(책장)
@@ -59,9 +60,9 @@
     if(view === 'made') return renderMade();
     if(view === 'book') return renderShelf();
     // 진행 중인 폭
-    const no = (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1;
+    const no = (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1;   // 다음 폭의 id
     const head = document.createElement('div'); head.className = 'roll current';
-    head.innerHTML = `<span>폭 ${pad2(board.open ? board.open.id : no)}</span><em></em><time>${size ? pad2(rows.length)+' / '+pad2(size) : ''}</time>`;
+    head.innerHTML = `<span>폭 ${board.open ? rno(board.open.id) : rno(no)}</span><em></em><time>${size ? pad2(rows.length)+' / '+pad2(size) : ''}</time>`;
     chain.appendChild(head);
     rows.forEach((row, i) => chain.appendChild(sheetItem(row, i === rows.length-1)));
     cnt.textContent = size ? `${pad2(rows.length)} / ${pad2(size)}` : '';
@@ -87,7 +88,7 @@
     if(!board.closed.length){ chain.innerHTML = '<div class="empty">아직 닫힌 폭이 없어요</div>'; return; }
     board.closed.forEach(r => {
       const h = document.createElement('div'); h.className = 'roll closed';
-      h.innerHTML = `<span>폭 ${pad2(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="bk">엮음</span>`;
+      h.innerHTML = `<span>폭 ${rno(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="bk">엮음</span>`;
       h.addEventListener('click', ()=>openBook(r));
       chain.appendChild(h);
       (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
@@ -100,8 +101,8 @@
     sh.innerHTML = board.closed.map((r,i) => `<div class="bk-item" data-i="${i}"><div class="pc cover">
         <div class="face front board"><div class="t deboss" style="left:calc(var(--mm)*12);top:calc(var(--mm)*14)">n.n.</div>
           <div class="t deboss cv-name">${esc(r.title) || '&nbsp;'}</div>
-          <div class="t deboss" style="right:calc(var(--mm)*12);bottom:calc(var(--mm)*12)">폭 ${pad2(r.id)}</div><i class="hole"></i></div>${RING}</div>
-        <div class="meta">폭 ${pad2(r.id)}  ${esc(r.title)}<br><span>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</span></div></div>`).join('');
+          <div class="t deboss" style="right:calc(var(--mm)*12);bottom:calc(var(--mm)*12)">폭 ${rno(r.id)}</div><i class="hole"></i></div>${RING}</div>
+        <div class="meta">폭 ${rno(r.id)}  ${esc(r.title)}<br><span>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</span></div></div>`).join('');
     sh.querySelectorAll('.bk-item').forEach(el => el.addEventListener('click', ()=>openBook(board.closed[+el.dataset.i])));
     chain.appendChild(sh);
   }
@@ -163,7 +164,7 @@
   const postBack = (rec) => `<div class="pcrule"></div>${rec}
       <i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:calc(var(--mm)*${78+i*12})"></i>`).join('')}`;
   function openBook(r){
-    const ss = r.sheets || [], no = pad2(r.id);
+    const ss = r.sheets || [], no = rno(r.id);
     const period = `${esc(r.from)} — ${esc(r.to)}`;
     // 표지 엽서: 앞 = 눌러 찍은 이름 / 뒤 = 각자가 본 한 줄들
     let html = card(

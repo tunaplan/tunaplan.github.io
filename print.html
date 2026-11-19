@@ -59,7 +59,7 @@
   if(!(board.closed||[]).length && window.NN_EXAMPLE) board.closed=[window.NN_EXAMPLE];
   const r=(board.closed||[]).find(x=>x.id===id) || (board.closed||[])[0];
   if(!r){ document.getElementById('note').textContent='닫힌 폭이 아직 없어요.'; return; }
-  const ss=r.sheets||[], no=pad2(r.id), period=`${esc(r.from)} — ${esc(r.to)}`;
+  const ss=r.sheets||[], no=pad2(Math.max(0,r.id-1)), period=`${esc(r.from)} — ${esc(r.to)}`;
   const KOR=['','하나','둘','셋','넷','다섯','여섯','일곱','여덟','아홉','열'];
   const postBack=rec=>`<div class="rule"></div>${rec}<i class="stamp"></i>${[0,1,2].map(i=>`<i class="addr" style="top:${78+i*12}mm"></i>`).join('')}`;
   // 엽서 목록: [앞, 뒤]

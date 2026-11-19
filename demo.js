@@ -112,7 +112,7 @@ window.NN_DEMO = (function(){
   const XT = ['싹', '', '멀어지는 길', '눈덩이 아래', '', '전깃줄', '그 집', '', '오후 세 시', ''];
   const XA = ['10.02 09:14','10.03 23:40','10.05 17:02','10.06 07:55','10.08 13:21','10.10 18:47','10.11 22:03','10.14 08:30','10.15 15:00','10.17 21:36']
     .map(t => '2026.' + t);
-  const example = {id:0, size:10, title:'창문 쪽으로', from:'2026.10.02', to:'2026.10.17', example:true,
+  const example = {id:1, size:10, title:'창문 쪽으로', from:'2026.10.02', to:'2026.10.17', example:true,
     sheets: X.map((img,i) => ({id:900+i, n:i+1, title:XT[i], at:XA[i], img}))};
   window.NN_EXAMPLE = example;     // 진짜 폭이 하나도 없을 때 아카이브에 보여 줄 예시 (지우려면 이 줄과 chain.js의 EXAMPLE 사용부를 뺀다)
 
@@ -120,7 +120,7 @@ window.NN_DEMO = (function(){
   const T = ['싹', '', '멀어지는 길', '', '나뭇가지 위'];
   const A = ['2026.11.02 09:14', '2026.11.05 23:40', '2026.11.09 17:02', '2026.11.12 07:55', '2026.11.16 13:21'];
   return {
-    open: {id:1, size:6, sheets: imgs.map((img,i) => ({id:10+i, n:i+1, title:T[i], at:A[i], img}))},
+    open: {id:2, size:6, sheets: imgs.map((img,i) => ({id:10+i, n:i+1, title:T[i], at:A[i], img}))},
     closed: [example]
   };
 })();
