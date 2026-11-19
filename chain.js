@@ -60,35 +60,95 @@
     chain.appendChild(next);
     const seams = document.createElementNS(NS,'svg'); seams.setAttribute('class','seams');
     chain.appendChild(seams);
-    requestAnimationFrame(()=>{ stitch(seams); watch(); });
+    requestAnimationFrame(()=>{ stitch(seams); watch(); whenOpened(intro); });
   }
 
   // 실: 맞닿은 자리를 꿰매고, 놓을 수 있는 사람에게만 빈 자리로 바늘이 늘어진다
+  // 실 한 가닥: 첫 장부터 끝 장까지 가장자리를 홈질하듯 들락날락 꿰어 내려간다.
+  // 서로 다른 목소리들이 한 줄로 묶여 함께 울린다. 맞닿은 자리는 감침질로 한 번 더.
   function stitch(seams){
     seams.innerHTML = '';
-    const sh = [...chain.querySelectorAll('.sheet, .next')];
-    const w = chain.clientWidth;
-    for(let i=1;i<sh.length;i++){
-      const y = sh[i].offsetTop;
-      for(let j=0;j<5;j++){
-        const x = w*(0.14 + 0.72*j/4) + Math.sin(i*7+j*3)*3;
-        const l = document.createElementNS(NS,'line');
-        l.setAttribute('x1',x-2); l.setAttribute('y1',y-5); l.setAttribute('x2',x+2); l.setAttribute('y2',y+5);
-        l.setAttribute('stroke',IND); l.setAttribute('stroke-width','1.2'); l.setAttribute('stroke-linecap','round');
-        l.setAttribute('opacity', i===sh.length-1 ? '.35' : '.85');
-        seams.appendChild(l);
+    const sh = [...chain.querySelectorAll('.sheet')];
+    const next = chain.querySelector('.next');
+    const w = chain.clientWidth, x0 = w*0.07;
+    const xs = y => x0 + Math.sin(y/70)*2.4 + Math.sin(y/23)*.8;
+    let html = '';
+    let yEnd = next ? next.offsetTop : 0;
+    if(sh.length){
+      const y1 = sh[0].offsetTop + 16;
+      let d = '';
+      for(let y=y1; y<=yEnd; y+=6) d += (d?' L':'M') + xs(y).toFixed(1) + ' ' + y.toFixed(1);
+      html += `<path d="${d}" fill="none" stroke="${IND}" stroke-width="1.35" stroke-linecap="round" stroke-dasharray="9 7" opacity=".82"/>`;
+      html += `<path d="${d}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width=".6" stroke-dasharray="2 3 4 7" opacity=".9"/>`;
+      for(let i=1;i<sh.length;i++){
+        const y = sh[i].offsetTop;
+        for(let k=0;k<3;k++){
+          const x = xs(y) + 5 + k*7;
+          html += `<line x1="${(x-2.5).toFixed(1)}" y1="${y-5}" x2="${(x+2.5).toFixed(1)}" y2="${y+5}" stroke="${IND}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>`;
+        }
       }
     }
-    if(!canPlace) return;
-    const last = sh[sh.length-1];
-    const y0 = last.offsetTop + (sh.length>1 ? -5 : 0), x0 = w*0.86 + 2;
+    seams.innerHTML = html;
+    if(!next) return;
+    const ex = xs(yEnd), ey = yEnd;
     const g = document.createElementNS(NS,'g');
-    g.innerHTML =
-      `<path d="M${x0} ${y0} Q${x0+14} ${y0+70} ${x0-6} ${y0+120}" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
-      `<line x1="${x0-9}" y1="${y0+112}" x2="${x0-2}" y2="${y0+150}" stroke="#a9aeb3" stroke-width="1.3" stroke-linecap="round"/>`;
-    g.style.transformOrigin = `${x0}px ${y0}px`;
-    g.style.animation = 'sway 7s ease-in-out infinite';
+    if(canPlace){                                   // 바늘이 빈 자리로 늘어져 다음 사람을 기다린다
+      g.innerHTML =
+        `<path d="M${ex} ${ey} Q${ex-10} ${ey+70} ${ex+8} ${ey+120}" fill="none" stroke="${IND}" stroke-width="1.15" stroke-linecap="round"/>`+
+        `<line x1="${ex+4}" y1="${ey+112}" x2="${ex+11}" y2="${ey+150}" stroke="#a9aeb3" stroke-width="1.3" stroke-linecap="round"/>`;
+      g.style.animation = 'sway 7s ease-in-out infinite';
+    } else if(sh.length){                           // 놓을 수 없는 사람에겐 풀린 실 끝만
+      g.innerHTML = `<path d="M${ex} ${ey} Q${ex-4} ${ey+12} ${ex+2} ${ey+24}" fill="none" stroke="${IND}" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>`;
+    }
+    g.style.transformOrigin = `${ex}px ${ey}px`;
     seams.appendChild(g);
+  }
+
+  /* 물러서서 전체 보기: 두 손가락으로 오므리면 한 폭으로, 벌리거나 한 장을 누르면 다시 가까이 */
+  function farScale(){
+    const nx = chain.querySelector('.next'); if(!nx) return 1;
+    const H = nx.offsetTop + nx.offsetHeight;
+    const avail = innerHeight - chain.getBoundingClientRect().top - 40 + app.scrollTop;
+    return Math.max(.08, Math.min(1, avail / H));
+  }
+  function setFar(on, instant){
+    if(on){
+      chain.querySelectorAll('.sheet').forEach(s=>s.classList.add('seen'));
+      chain.style.setProperty('--fs', farScale());
+      app.scrollTo({top:0, behavior: instant ? 'auto' : 'smooth'});
+    }
+    if(instant){ chain.style.transition = 'none'; requestAnimationFrame(()=>requestAnimationFrame(()=>chain.style.transition = '')); }
+    document.body.classList.toggle('far', on);
+  }
+  let pinch0 = 0;
+  const dist = t => Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+  app.addEventListener('touchstart', e=>{ if(e.touches.length===2) pinch0 = dist(e.touches); }, {passive:true});
+  app.addEventListener('touchmove', e=>{
+    if(e.touches.length!==2 || !pinch0) return;
+    const r = dist(e.touches)/pinch0;
+    if(r < .78 && !document.body.classList.contains('far')){ setFar(true); pinch0 = 0; }
+    else if(r > 1.25 && document.body.classList.contains('far')){ setFar(false); pinch0 = 0; }
+  }, {passive:true});
+  chain.addEventListener('click', e=>{
+    if(!document.body.classList.contains('far')) return;
+    const s = e.target.closest('.sheet, .next');
+    e.stopPropagation();
+    setFar(false);
+    if(s) setTimeout(()=>s.scrollIntoView({behavior:'smooth', block:'start'}), 900);
+  }, true);
+
+  // 처음 들어올 때: 먼저 전체가 한 폭으로 보이고, 천천히 첫 장으로 다가간다
+  let introDone = false;
+  function intro(){
+    if(introDone || chain.querySelectorAll('.sheet').length < 2) return;
+    introDone = true;
+    setFar(true, true);
+    setTimeout(()=>setFar(false), 2600);
+  }
+  function whenOpened(fn){
+    if(document.body.classList.contains('opened')) return fn();
+    new MutationObserver((_, o)=>{ if(document.body.classList.contains('opened')){ o.disconnect(); setTimeout(fn, 900); } })
+      .observe(document.body, {attributes:true, attributeFilter:['class']});
   }
 
   const io = new IntersectionObserver(es=>es.forEach(e=>{

@@ -28,7 +28,13 @@
   #app .by{position:fixed;right:7vw;bottom:5vh;font-size:9px;font-weight:300;letter-spacing:.3em;color:var(--faint);pointer-events:none;z-index:5}
 
   /* 이어 붙인 장들 — 형식은 같고, 무엇이 올지는 모른다 */
-  #chain{position:relative;width:var(--sw);margin:0 auto;padding-bottom:22vh;--sw:min(72vw,340px)}
+  #chain{position:relative;width:var(--sw);margin:0 auto;padding-bottom:22vh;--sw:min(72vw,340px);
+    transform-origin:50% 0;transition:transform 1.8s cubic-bezier(.45,0,.2,1)}
+  #app{touch-action:pan-y}
+  body.far #app{overflow:hidden}
+  body.far #chain{transform:scale(var(--fs,1))}
+  .sheet time{transition:opacity .8s}
+  body.far .sheet time{opacity:0}
   .sheet{position:relative;width:var(--sw);aspect-ratio:3/4;background:#f7f8f6;
     box-shadow:0 0 0 .5px rgba(68,71,76,.10), 0 1px 3px rgba(68,71,76,.04);
     opacity:0;transform:translateY(10px);transition:opacity 1.2s ease, transform 1.2s ease}
