@@ -40,6 +40,10 @@
   .name{left:12mm;right:12mm;bottom:22mm;font-size:5.6mm;font-weight:200;letter-spacing:.04em;line-height:1.4}
   /* 재단 표시 */
   .crop{position:absolute;background:#000}
+  #gift{display:none!important}
+  .pms{position:absolute;right:6mm;top:38mm;display:flex;gap:1mm}.pms svg{width:17mm;height:17mm}
+  .to{position:absolute;left:54mm;right:7mm;top:92mm;border-bottom:.15mm solid #bbb;padding-bottom:1.5mm;font-size:3mm;letter-spacing:.14em}
+  .to span{color:#888;font-size:.8em;margin-right:.8em}
   .note{width:210mm;margin:8mm auto 0;font-size:3mm;line-height:1.9;color:#555;letter-spacing:.04em}
 </style>
 </head>
@@ -48,12 +52,29 @@
 <div id="out"></div>
 <script src="edge.js"></script>
 <script src="demo.js"></script>
+<script src="gift.js"></script>
 <script>
 (async function(){
   const SB='https://esxwkzsvxlacymduuncw.supabase.co', PK='sb_publishable_nP5mWJBUMS1bJ_sSWAIlow_rBq3FKGy';
   const q=new URLSearchParams(location.search), id=+q.get('roll');
   const pad2=n=>String(n).padStart(2,'0');
   const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // 내 엽서 한 장만(놓은 직후 받은 엽서): A4 한 장 앞뒤
+  if(q.has('card')){
+    let d=null; try{ d=JSON.parse(localStorage.getItem('nn-print')||'null'); }catch(e){}
+    if(!d){ document.getElementById('note').textContent='엽서 정보가 없어요.'; return; }
+    const G=window.NN_GIFT;
+    const f=`<div class="pic"><img src="${d.img}"></div><div class="t cap"><span>폭 ${d.rollNo} · ${pad2(d.n)}/${pad2(d.size)}</span><em>${esc(d.title)}</em><span class="f">${esc(d.at)}</span></div>`;
+    const b=`${d.seen?`<div class="seen"><img src="${d.seen}"></div>`:`<div class="seen none"></div>`}<div class="rule"></div>
+      <div class="t rec"><b>${pad2(d.n)}/${pad2(d.size)}</b>${esc(d.title)?esc(d.title)+'<br>':''}<span class="f">폭 ${d.rollNo} · n.n.</span></div>
+      <div class="pms">${G.postmark('보냄',d.at,-8)}${d.got?G.postmark('받음',d.got,11):'<i class="stamp" style="position:static"></i>'}</div>
+      <div class="to"><span>받는 이</span> n.n.</div>`;
+    const crop=`<i class="crop" style="left:4.95mm;top:0;width:.1mm;height:.5mm"></i><i class="crop" style="left:104.95mm;top:0;width:.1mm;height:.5mm"></i><i class="crop" style="top:.45mm;left:0;height:.1mm;width:4mm"></i><i class="crop" style="top:148.45mm;left:0;height:.1mm;width:4mm"></i>`;
+    document.getElementById('out').innerHTML=`<div class="sheet"><div class="cell front" style="left:5mm;top:.5mm">${f}<i class="punch"></i></div>${crop}</div>
+      <div class="sheet"><div class="cell back" style="left:105mm;top:.5mm">${b}<i class="punch"></i></div>${crop}</div>`;
+    document.getElementById('note').innerHTML=`내 엽서 — 폭 ${d.rollNo} · ${pad2(d.n)}/${pad2(d.size)}<br>흑백이나 컬러, A4, <b>양면(긴 변 넘김)</b>, 배율 100%. 두꺼운 종이에 찍어 왼쪽 위 칸을 잘라요. 우표를 붙여 부칠 수 있어요.`;
+    return;
+  }
   let board;
   if(q.has('demo')) board=window.NN_DEMO;
   else { const r=await fetch(`${SB}/rest/v1/rpc/board`,{method:'POST',headers:{apikey:PK,'Content-Type':'application/json'},body:'{}'}); board=await r.json(); }

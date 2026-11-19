@@ -31,6 +31,17 @@
 
   const {edgeOf, cellOf, edgeURL} = window.NN_EDGE;
   const formOf = r => (r && r.form) || 'line';
+  const GIFT = window.NN_GIFT;
+  const nowAt = () => { const d = new Date(), p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+  // 내 엽서 데이터: 폭·번호·이미지·내가 본 한 줄·소인 시각들
+  async function giftData(row, roll, imgOverride){
+    const form = formOf(roll), list = roll.sheets || [], prev = list.find(x => x.n === row.n - 1);
+    const kept = GIFT.mine.kept(row.id);
+    const seen = kept && kept.seen ? kept.seen : (prev ? await edgeURL(prev.strip || prev.img, edgeOf(prev.n, form), !!prev.strip) : null);
+    return {id: row.id, img: imgOverride || (kept && kept.img) || row.img, seen, n: row.n, size: roll.size, rollNo: rno(roll.id),
+      title: row.title || '', at: row.at, got: row.got || null};
+  }
   const pad2 = n => String(n).padStart(2,'0');
   const rno = id => pad2(Math.max(0, id - 1));   // 폭 번호는 00부터: 첫 폭(두 사람이 만드는 폭 00)
   const esc = t => String(t||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -47,8 +58,8 @@
   function sheetItem(row, folded){
     const it = document.createElement('section'); it.className = 'item';
     it.innerHTML = `<div class="label"><span>${pad2(row.n)}</span><em>${esc(row.title)}</em><time>${esc(row.at)}</time></div>`;
-    const s = document.createElement('div'); s.className = 'sheet' + (folded ? ' last' : '');
-    s.dataset.n = pad2(row.n); s.dataset.t = row.title || ''; s.dataset.at = row.at || '';
+    const s = document.createElement('div'); s.className = 'sheet' + (folded ? ' last' : '') + (GIFT.mine.has(row.id) ? ' mine' : '');
+    s.dataset.n = pad2(row.n); s.dataset.t = row.title || ''; s.dataset.at = row.at || ''; s.dataset.id = row.id;
     const im = new Image(); im.decoding = 'async'; im.src = row.img; im.alt = '';
     im.className = folded ? 'strip' : 'pic';
     s.appendChild(im);
@@ -68,8 +79,8 @@
       const cell = document.createElement('div'); cell.className = 'cell';
       cell.style.gridRow = c.r + 1; cell.style.gridColumn = c.col + 1;
       if(n > 1){ const e = edgeOf(n-1, form); cell.classList.add(e === 'bottom' ? 'j-top' : e === 'right' ? 'j-left' : 'j-right'); }
-      const s = document.createElement('div'); s.className = 'sheet' + (folded ? ' last' : '');
-      s.dataset.n = pad2(n); s.dataset.t = row.title || ''; s.dataset.at = row.at || '';
+      const s = document.createElement('div'); s.className = 'sheet' + (folded ? ' last' : '') + (GIFT.mine.has(row.id) ? ' mine' : '');
+      s.dataset.n = pad2(n); s.dataset.t = row.title || ''; s.dataset.at = row.at || ''; s.dataset.id = row.id;
       const e = edgeOf(n, form), ec = e === 'bottom' ? '' : (e === 'right' ? ' er' : ' el');
       const im = new Image(); im.decoding = 'async'; im.src = row.img; im.alt = '';
       im.className = folded ? 'strip' + ec : 'pic';
@@ -149,8 +160,12 @@
     if(!board.closed.length){ chain.innerHTML = '<div class="empty">아직 닫힌 폭이 없어요</div>'; return; }
     board.closed.forEach(r => {
       const h = document.createElement('div'); h.className = 'roll closed';
-      h.innerHTML = `<span>폭 ${rno(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time><span class="bk">엮음</span>`;
-      h.addEventListener('click', ()=>openBook(r));
+      const mineHere = (r.sheets||[]).some(x => GIFT.mine.has(x.id));
+      h.innerHTML = `<span>폭 ${rno(r.id)}</span><em>${esc(r.title)}</em><time>${esc(r.from)} — ${esc((r.to||'').slice(5))} · ${r.size}장</time>${mineHere ? '<span class="mk">완성본</span>' : ''}<span class="bk">엮음</span>`;
+      h.addEventListener('click', async e => {
+        if(e.target.classList.contains('mk')){ const b = await GIFT.storyRoll(r, GIFT.mine.ids(), rno(r.id)); return GIFT.share(b, `n.n.-${rno(r.id)}.png`); }
+        openBook(r);
+      });
       chain.appendChild(h);
       if(formOf(r) === 'snake') chain.appendChild(snake(r.sheets||[], 'snake'));
       else (r.sheets||[]).forEach(row => chain.appendChild(sheetItem(row, false)));
@@ -277,7 +292,7 @@
 
   /* 한 장만: 가까이서 한 장을 누르면 그 장 혼자 선다. 번호와 날짜만 곁에. */
   const solo = document.createElement('div'); solo.id = 'solo';
-  solo.innerHTML = '<img alt=""><div class="meta"><span></span><time></time></div>';
+  solo.innerHTML = '<img alt=""><div class="meta"><span></span><time></time></div><button class="mycard">내 엽서</button>';
   document.body.appendChild(solo);
   chain.addEventListener('click', e=>{
     if(document.body.classList.contains('far')) return;
@@ -286,9 +301,19 @@
     solo.querySelector('img').src = im.src;
     solo.querySelector('.meta span').textContent = s.dataset.n + (s.dataset.t ? '   ' + s.dataset.t : '');
     solo.querySelector('.meta time').textContent = s.dataset.at;
+    solo.classList.toggle('ismine', GIFT.mine.has(+s.dataset.id));
+    solo.dataset.id = s.dataset.id;
     document.body.classList.add('solo');
   });
-  solo.addEventListener('click', ()=>document.body.classList.remove('solo'));
+  solo.addEventListener('click', async e => {
+    if(e.target.classList.contains('mycard')){
+      e.stopPropagation();
+      const id = +solo.dataset.id, roll = [board.open, ...board.closed].find(r => r && (r.sheets||[]).some(x => x.id === id));
+      if(roll){ const row = roll.sheets.find(x => x.id === id); GIFT.open(await giftData(row, roll)); }
+      return;
+    }
+    document.body.classList.remove('solo');
+  });
 
   const DEMO = /[?&]demo/.test(location.search) && window.NN_DEMO;
   async function load(){
@@ -466,6 +491,13 @@
         pphoto: original()
       });
       navigator.vibrate && navigator.vibrate(res && res.closed ? [15,60,15] : 15);
+      // 보상: 방금 놓은 장 → 번호 매긴 엽서
+      const roll0 = board.open || {id: (board.closed.length && !board.closed[0].example ? board.closed[0].id : 0) + 1, size: pick, form: pickForm, sheets: []};
+      const prevRow = rows[rows.length-1];
+      const seenUrl = prevRow ? await edgeURL(prevRow.img, edgeOf(prevRow.n, formOf(roll0)), true) : null;
+      const gd = {id: res.id, img: out.img, seen: seenUrl, n: rows.length + 1, size: roll0.size, rollNo: rno(roll0.id),
+        title: cTitle.value.trim(), at: nowAt(), got: null};
+      GIFT.mine.add(res.id); GIFT.mine.keep(res.id, {img: out.img, seen: seenUrl});
       lifting = new Set([prev, res && res.closed ? res.id : null]);
       token = null; closeCompose(true); await load();
       setTimeout(()=>{ lifting = new Set(); }, 50);
@@ -473,6 +505,7 @@
         const t = res && res.closed ? chain.querySelector('.roll:not(.current)') : [...chain.querySelectorAll('.item')].slice(-3)[0];
         t && t.scrollIntoView({block:'start'});
       }, 60);
+      setTimeout(()=>GIFT.open(gd), 1100);
     }catch(e){
       const m = String(e.message||'');
       if(m.includes('held')){

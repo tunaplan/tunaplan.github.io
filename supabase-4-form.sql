@@ -1,4 +1,4 @@
--- n.n. 네 번째 설정: 폭의 형식 (두 줄 굽이 / 한 줄). 첫 장을 놓는 사람이 장 수와 함께 고른다(기본 두 줄).
+-- n.n. 네 번째 설정: 폭의 형식 + 받음(다음 장이 놓인 시각) (두 줄 굽이 / 한 줄). 첫 장을 놓는 사람이 장 수와 함께 고른다(기본 두 줄).
 -- 두 줄: 01→02 오른쪽, 02→03 아래, 03→04 왼쪽, 04→05 아래 … 모든 이음매가 실제로 맞닿은 가장자리.
 -- (SQL Editor에 통째로 붙여 넣고 Run, 여러 번 돌려도 안전)
 
@@ -14,7 +14,8 @@ returns json
 language sql security definer set search_path = public stable as $$
   with s as (
     select s.*, row_number() over (partition by s.roll_id order by s.id) as n,
-           count(*) over (partition by s.roll_id) as cnt
+           count(*) over (partition by s.roll_id) as cnt,
+           lead(s.created_at) over (partition by s.roll_id order by s.id) as got_at
     from sheets s where not s.hidden
   ),
   o as (select * from rolls where closed_at is null order by id desc limit 1)
@@ -23,6 +24,7 @@ language sql security definer set search_path = public stable as $$
         'sheets', coalesce((select json_agg(json_build_object(
             'id', s.id, 'n', s.n, 'title', s.title,
             'at', to_char(s.created_at at time zone 'Asia/Seoul', 'YYYY.MM.DD HH24:MI'),
+            'got', to_char(s.got_at at time zone 'Asia/Seoul', 'YYYY.MM.DD HH24:MI'),
             'img', case when s.n = s.cnt then s.strip else s.img end) order by s.id)
           from s where s.roll_id = o.id), '[]'::json))
       from o),
@@ -32,6 +34,7 @@ language sql security definer set search_path = public stable as $$
         'sheets', (select json_agg(json_build_object(
             'id', s.id, 'n', s.n, 'title', s.title,
             'at', to_char(s.created_at at time zone 'Asia/Seoul', 'YYYY.MM.DD HH24:MI'),
+            'got', to_char(s.got_at at time zone 'Asia/Seoul', 'YYYY.MM.DD HH24:MI'),
             'img', s.img, 'strip', s.strip) order by s.id) from s where s.roll_id = r.id)) order by r.id desc)
       from rolls r where r.closed_at is not null), '[]'::json)
   );
