@@ -1,16 +1,18 @@
 -- n.n. 두 번째 설정: 폭(roll)과 기록, 책을 위한 자동 저장 (SQL Editor에 통째로 붙여 넣고 Run, 여러 번 돌려도 안전)
 -- 규칙: 앞 장의 끝만 보고 잇는다 / 정해진 장 수가 차면 모두 펼쳐진다 / 마지막 사람이 폭의 이름을 짓는다.
--- 장 수는 첫 장을 놓는 사람이 4·6·8·10 중 고른다(기본 6). 닫힌 폭은 누구나 본다.
+-- 장 수는 첫 장을 놓는 사람이 2·4·6·8·10 중 고른다(기본 6). 닫힌 폭은 누구나 본다.
 -- 책(엽서 크기, 흑백)을 위해: 그림은 획(strokes: 순서·좌표·시간), 사진은 원본(긴 변 1600px)을 따로 저장. 화면엔 내보내지 않는다.
 
 create table if not exists public.rolls(
   id bigint generated always as identity primary key,
-  size int not null check (size in (4,6,8,10)),
+  size int not null,
   title text,
   created_at timestamptz not null default now(),
   closed_at timestamptz
 );
 alter table public.rolls enable row level security;
+alter table public.rolls drop constraint if exists rolls_size_check;
+alter table public.rolls add constraint rolls_size_check check (size in (2,4,6,8,10));
 
 alter table public.sheets add column if not exists roll_id bigint references public.rolls(id);
 alter table public.sheets add column if not exists title text;
@@ -73,7 +75,7 @@ begin
   select r.id, r.size into rid, rsize from rolls r where r.closed_at is null order by r.id desc limit 1;
   if rid is null then
     rsize := coalesce(psize, 6);
-    if rsize not in (4,6,8,10) then raise exception 'size'; end if;
+    if rsize not in (2,4,6,8,10) then raise exception 'size'; end if;
     if after_id is not null then raise exception 'moved'; end if;
     insert into rolls(size) values (rsize) returning id into rid;
   else
