@@ -49,7 +49,14 @@
       chain.appendChild(s);
     });
     const next = document.createElement('div'); next.className = 'next' + (canPlace ? ' open' : '');
-    next.addEventListener('click', ()=>{ if(canPlace) openCompose(); });
+    next.addEventListener('click', ()=>{
+      if(canPlace) return openCompose();
+      if(DEMO){                                         // 예시: 다음 장이 놓인 순간처럼 마지막 천을 걷는다
+        const ls = chain.querySelector('.sheet.last'); if(!ls) return;
+        const v = ls.querySelector('.veil'); ls.querySelector('img').className = 'pic';
+        v && v.classList.add('lift');
+      }
+    });
     chain.appendChild(next);
     const seams = document.createElementNS(NS,'svg'); seams.setAttribute('class','seams');
     chain.appendChild(seams);
@@ -89,7 +96,9 @@
   }), {root:app, threshold:.12});
   const watch = () => chain.querySelectorAll('.sheet:not(.seen)').forEach(s=>io.observe(s));
 
+  const DEMO = /[?&]demo/.test(location.search) && window.NN_DEMO;
   async function load(){
+    if(DEMO){ rows = DEMO; lastId = rows[rows.length-1].id; canPlace = false; render(); return; }
     try{
       rows = await rpc('chain') || [];
       lastId = rows.length ? rows[rows.length-1].id : null;
@@ -199,7 +208,7 @@
   addEventListener('resize', ()=>{ const s = chain.querySelector('svg.seams'); s && stitch(s); });
 
   (async ()=>{
-    if(key){ try{ canPlace = !!(await rpc('can_place', {k:key})); }catch(e){ canPlace = false; } }
+    if(key && !DEMO){ try{ canPlace = !!(await rpc('can_place', {k:key})); }catch(e){ canPlace = false; } }
     load();
   })();
 })();
